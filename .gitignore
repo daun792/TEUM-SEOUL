@@ -1,0 +1,6 @@
+/teum_seoul
+.env
+__pycache__/
+tourism.db
+.pyc
+.vscode/
