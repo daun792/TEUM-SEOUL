@@ -1,19 +1,34 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { posts } from '../mocks/posts'
 
 const route = useRoute()
 const router = useRouter()
 
 const isEditMode = computed(() => Boolean(route.params.id))
+const targetPost = computed(() =>
+  posts.find((item) => item.id === String(route.params.id))
+)
 
 const form = ref({
-  title: isEditMode.value ? '기존 글 제목 예시' : '',
-  content: isEditMode.value ? '기존 글 내용 예시' : '',
+  title: '',
+  content: '',
+})
+
+onMounted(() => {
+  if (isEditMode.value && targetPost.value) {
+    form.value.title = targetPost.value.title
+    form.value.content = targetPost.value.content
+  }
 })
 
 const submitForm = () => {
-  alert(isEditMode.value ? '수정 완료(더미)' : '작성 완료(더미)')
+  if (isEditMode.value) {
+    alert('수정 완료(더미)')
+  } else {
+    alert('작성 완료(더미)')
+  }
   router.push('/board')
 }
 

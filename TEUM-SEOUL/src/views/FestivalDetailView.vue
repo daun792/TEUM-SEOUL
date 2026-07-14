@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { festivals } from '../mocks/festivals'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -18,40 +19,9 @@ const mapEl = ref(null)
 let map = null
 let marker = null
 
-const festivals = [
-  {
-    id: '1',
-    name: '서울 여름 음악축제',
-    period: '2026-07-20 ~ 2026-07-22',
-    place: '서울광장',
-    description: '도심에서 즐기는 야외 음악 페스티벌',
-    imageUrl: 'https://picsum.photos/900/420?random=11',
-    lat: 37.5663,
-    lng: 126.9779,
-  },
-  {
-    id: '2',
-    name: '한강 야간 문화축제',
-    period: '2026-07-25',
-    place: '여의도 한강공원',
-    description: '한강 야경과 함께하는 문화 공연',
-    imageUrl: 'https://picsum.photos/900/420?random=12',
-    lat: 37.5288,
-    lng: 126.9326,
-  },
-  {
-    id: '3',
-    name: '전통예술 거리축제',
-    period: '2026-08-02',
-    place: '인사동 거리',
-    description: '전통 공연과 공예 체험이 있는 거리 축제',
-    imageUrl: 'https://picsum.photos/900/420?random=13',
-    lat: 37.5742,
-    lng: 126.985,
-  },
-]
-
-const festival = computed(() => festivals.find((item) => item.id === route.params.id))
+const festival = computed(() =>
+  festivals.find((item) => item.id === String(route.params.id))
+)
 
 function renderMap() {
   if (!festival.value || !mapEl.value) return
