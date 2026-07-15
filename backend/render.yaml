@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: teum-seoul-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python scripts/load_data.py --data-dir data --region 서울
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///./tourism.db
+      - key: CORS_ORIGINS
+        sync: false
