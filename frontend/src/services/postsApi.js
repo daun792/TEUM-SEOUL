@@ -10,9 +10,11 @@ function formatDate(value) {
 function mapPost(item) {
   return {
     id: String(item.id),
+    category: item.category || '자유',
     title: item.title,
     content: item.content,
     author: item.author,
+    festivalId: item.festival_id || null,
     createdAt: formatDate(item.created_at),
     createdAtRaw: item.created_at,
     updatedAtRaw: item.updated_at,
@@ -24,6 +26,9 @@ export async function getPostList(params = {}) {
   if (params.page) search.set('page', String(params.page))
   if (params.size) search.set('size', String(params.size))
   if (params.q) search.set('q', params.q)
+  if (params.keyword) search.set('keyword', params.keyword)
+  if (params.category) search.set('category', params.category)
+  if (params.festivalId) search.set('festival_id', params.festivalId)
   const query = search.toString()
 
   const payload = await requestJson(`/api/posts${query ? `?${query}` : ''}`)
@@ -43,20 +48,33 @@ export async function getPostById(id) {
   return mapPost(payload)
 }
 
-export async function createPost({ title, content, author, password }) {
+export async function createPost({ category, title, content, author, password, festivalId }) {
   const payload = await requestJson('/api/posts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, content, author, password }),
+    body: JSON.stringify({
+      category,
+      title,
+      content,
+      author,
+      password,
+      festival_id: festivalId || null,
+    }),
   })
   return mapPost(payload)
 }
 
-export async function updatePost(id, { title, content, password }) {
+export async function updatePost(id, { category, title, content, password, festivalId }) {
   const payload = await requestJson(`/api/posts/${encodeURIComponent(String(id))}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, content, password }),
+    body: JSON.stringify({
+      category,
+      title,
+      content,
+      password,
+      festival_id: festivalId || null,
+    }),
   })
   return mapPost(payload)
 }

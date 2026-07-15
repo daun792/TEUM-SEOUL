@@ -8,7 +8,7 @@ from app.api.places import router as places_router
 from app.api.posts import router as posts_router
 from app.routers.chat import router as chat_router
 from app.core.config import get_settings
-from app.database.database import Base, engine
+from app.database.database import Base, engine, ensure_sqlite_schema
 
 settings = get_settings()
 
@@ -16,6 +16,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_sqlite_schema()
     yield
 
 

@@ -12,9 +12,11 @@ const submitting = ref(false)
 const errorMessage = ref('')
 
 const form = ref({
+  category: '자유',
   title: '',
   content: '',
   author: '익명',
+  festivalId: '',
   password: '',
 })
 
@@ -24,14 +26,18 @@ onMounted(async () => {
     errorMessage.value = ''
     try {
       const post = await getPostById(route.params.id)
+      form.value.category = post.category
       form.value.title = post.title
       form.value.content = post.content
       form.value.author = post.author
+      form.value.festivalId = post.festivalId || ''
     } catch (error) {
       errorMessage.value = error instanceof Error ? error.message : '게시글 정보를 불러오지 못했습니다.'
     } finally {
       loading.value = false
     }
+  } else if (typeof route.query.festival_id === 'string') {
+    form.value.festivalId = route.query.festival_id
   }
 })
 
@@ -42,17 +48,21 @@ const submitForm = async () => {
   try {
     if (isEditMode.value) {
       await updatePost(route.params.id, {
+        category: form.value.category,
         title: form.value.title,
         content: form.value.content,
         password: form.value.password,
+        festivalId: form.value.festivalId,
       })
       window.alert('수정이 완료되었습니다.')
     } else {
       await createPost({
+        category: form.value.category,
         title: form.value.title,
         content: form.value.content,
         author: form.value.author || '익명',
         password: form.value.password,
+        festivalId: form.value.festivalId,
       })
       window.alert('작성이 완료되었습니다.')
     }
@@ -79,6 +89,15 @@ const cancel = () => {
 
       <form class="form" @submit.prevent="submitForm">
         <label>
+          카테고리
+          <select v-model="form.category" required>
+            <option value="축제후기">축제후기</option>
+            <option value="주변장소">주변장소</option>
+            <option value="자유">자유</option>
+          </select>
+        </label>
+
+        <label>
           제목
           <input v-model="form.title" type="text" placeholder="제목을 입력하세요" required />
         </label>
@@ -91,6 +110,11 @@ const cancel = () => {
         <label>
           내용
           <textarea v-model="form.content" rows="10" placeholder="내용을 입력하세요" required />
+        </label>
+
+        <label>
+          축제 ID (선택)
+          <input v-model="form.festivalId" type="text" maxlength="40" placeholder="예: 2556687" />
         </label>
 
         <label>
@@ -144,7 +168,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid #dbe3d8;
   border-radius: 12px;
@@ -154,7 +179,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: 2px solid rgba(105, 182, 47, 0.22);
   border-color: var(--color-primary);
 }

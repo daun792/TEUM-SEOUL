@@ -311,5 +311,22 @@ const submitMessage = async (presetMessage) => {
   .suggestions {
     grid-template-columns: 1fr;
   }
+
+  .chat-panel {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    padding: 14px;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+  }
+
+  .messages {
+    min-height: 0;
+    max-height: none;
+  }
 }
 </style>

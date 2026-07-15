@@ -1,23 +1,53 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getPostList } from '../services/postsApi'
 
 const router = useRouter()
+const route = useRoute()
 const posts = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
+const keyword = ref('')
+const selectedCategory = ref('전체')
+const page = ref(1)
+const size = 10
+const pages = ref(0)
+const total = ref(0)
+const categoryOptions = ['전체', '축제후기', '주변장소', '자유']
 
-onMounted(async () => {
+const loadPosts = async () => {
   try {
-    const page = await getPostList({ page: 1, size: 50 })
-    posts.value = page.items
+    loading.value = true
+    const result = await getPostList({
+      page: page.value,
+      size,
+      keyword: keyword.value,
+      category: selectedCategory.value === '전체' ? undefined : selectedCategory.value,
+      festivalId: typeof route.query.festival_id === 'string' ? route.query.festival_id : undefined,
+    })
+    posts.value = result.items
+    pages.value = result.pages
+    total.value = result.total
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '게시글을 불러오지 못했습니다.'
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadPosts)
+
+const submitSearch = async () => {
+  page.value = 1
+  await loadPosts()
+}
+
+const movePage = async (nextPage) => {
+  if (nextPage < 1 || (pages.value > 0 && nextPage > pages.value)) return
+  page.value = nextPage
+  await loadPosts()
+}
 
 const goDetail = (id) => {
   router.push('/board/' + id)
@@ -34,6 +64,14 @@ const goWrite = () => {
       <h2>익명 게시판</h2>
       <button type="button" class="write-btn" @click="goWrite">글쓰기</button>
     </header>
+
+    <form class="search-row" @submit.prevent="submitSearch">
+      <select v-model="selectedCategory" aria-label="카테고리 필터">
+        <option v-for="option in categoryOptions" :key="option" :value="option">{{ option }}</option>
+      </select>
+      <input v-model="keyword" type="text" placeholder="제목/내용 검색" />
+      <button type="submit">검색</button>
+    </form>
 
     <ul v-if="!loading && !errorMessage && posts.length" class="post-list section-card">
       <li
@@ -53,6 +91,12 @@ const goWrite = () => {
     <section v-else class="section-card state-box">
       {{ loading ? '게시글을 불러오는 중입니다...' : (errorMessage || '작성된 게시글이 없습니다.') }}
     </section>
+
+    <nav v-if="!loading && pages > 1" class="pager" aria-label="게시글 페이지">
+      <button type="button" :disabled="page <= 1" @click="movePage(page - 1)">이전</button>
+      <span>{{ page }} / {{ pages }} (총 {{ total }}건)</span>
+      <button type="button" :disabled="page >= pages" @click="movePage(page + 1)">다음</button>
+    </nav>
   </main>
 </template>
 
@@ -85,6 +129,31 @@ h2 {
   cursor: pointer;
 }
 
+.search-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search-row select,
+.search-row input {
+  border: 1px solid #d9e2d5;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 13px;
+}
+
+.search-row button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #deeeda;
+  color: #395347;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .post-list {
   list-style: none;
   padding: 8px;
@@ -97,6 +166,30 @@ h2 {
   place-items: center;
   color: #60746a;
   font-weight: 700;
+}
+
+.pager {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.pager button {
+  border: 1px solid #d2ddd0;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #fff;
+  color: #406053;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pager span {
+  color: #60756b;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .post-item {
@@ -154,6 +247,10 @@ h2 {
 
   h2 {
     font-size: 24px;
+  }
+
+  .search-row {
+    grid-template-columns: 1fr;
   }
 
   .post-item {

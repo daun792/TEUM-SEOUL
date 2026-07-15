@@ -1,12 +1,12 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { getFestivalById } from '../services/festivalsApi'
+import { getFestivalById, getFestivalNearby } from '../services/festivalsApi'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -19,9 +19,22 @@ const mapEl = ref(null)
 const festival = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const nearbyPlaces = ref([])
+const nearbyLoading = ref(false)
+const nearbyErrorMessage = ref('')
+const selectedNearbyCategory = ref('전체')
+const nearbyCategories = ['전체', '관광지', '문화시설', '쇼핑']
 
 let map = null
-let marker = null
+let festivalMarker = null
+let nearbyMarkers = []
+
+const filteredNearbyPlaces = computed(() => {
+  if (selectedNearbyCategory.value === '전체') {
+    return nearbyPlaces.value
+  }
+  return nearbyPlaces.value.filter((place) => place.category === selectedNearbyCategory.value)
+})
 
 function renderMap() {
   if (!festival.value || !mapEl.value) return
@@ -38,8 +51,37 @@ function renderMap() {
     map.setView([lat, lng], 15)
   }
 
-  if (marker) marker.remove()
-  marker = L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup()
+  if (festivalMarker) festivalMarker.remove()
+  festivalMarker = L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup()
+
+  nearbyMarkers.forEach((item) => item.remove())
+  nearbyMarkers = filteredNearbyPlaces.value
+    .filter((item) => typeof item.lat === 'number' && typeof item.lng === 'number')
+    .map((item) => {
+      const distanceLabel = typeof item.distanceKm === 'number' ? `${item.distanceKm.toFixed(2)}km` : '-'
+      return L.marker([item.lat, item.lng])
+        .addTo(map)
+        .bindPopup(`<strong>${item.title}</strong><br>${item.category}<br>${distanceLabel}`)
+    })
+}
+
+const loadNearbyPlaces = async () => {
+  if (!festival.value) return
+  nearbyLoading.value = true
+  nearbyErrorMessage.value = ''
+  try {
+    const nearby = await getFestivalNearby(route.params.id, {
+      radiusKm: 2,
+      categories: ['관광지', '문화시설', '쇼핑'],
+      limit: 8,
+    })
+    nearbyPlaces.value = nearby.items
+  } catch (error) {
+    nearbyPlaces.value = []
+    nearbyErrorMessage.value = error instanceof Error ? error.message : '주변 장소를 불러오지 못했습니다.'
+  } finally {
+    nearbyLoading.value = false
+  }
 }
 
 const loadFestival = async () => {
@@ -47,6 +89,7 @@ const loadFestival = async () => {
   errorMessage.value = ''
   try {
     festival.value = await getFestivalById(route.params.id)
+    await loadNearbyPlaces()
     await nextTick()
     renderMap()
   } catch (error) {
@@ -68,11 +111,17 @@ watch(
   }
 )
 
+watch(filteredNearbyPlaces, async () => {
+  await nextTick()
+  renderMap()
+})
+
 onBeforeUnmount(() => {
   if (map) {
     map.remove()
     map = null
-    marker = null
+    festivalMarker = null
+    nearbyMarkers = []
   }
 })
 </script>
@@ -101,11 +150,40 @@ onBeforeUnmount(() => {
         <p><strong>장소</strong><span>{{ festival.place }}</span></p>
       </div>
 
+      <RouterLink class="related-link" :to="`/board?festival_id=${festival.id}`">이 축제 관련 게시글 보기</RouterLink>
+
       <p class="description">{{ festival.description }}</p>
 
       <h3>축제 위치</h3>
       <div v-if="typeof festival.lat === 'number' && typeof festival.lng === 'number'" ref="mapEl" class="map"></div>
       <p v-else class="map-empty">위치 좌표가 없어 지도를 표시할 수 없습니다.</p>
+
+      <h3>주변 장소 (반경 2km, 최대 8개)</h3>
+      <p class="distance-note">거리 값은 실제 이동거리/시간이 아닌 직선거리 기준입니다.</p>
+
+      <div class="filter-row">
+        <button
+          v-for="category in nearbyCategories"
+          :key="category"
+          type="button"
+          class="filter-btn"
+          :class="{ active: selectedNearbyCategory === category }"
+          @click="selectedNearbyCategory = category"
+        >
+          {{ category }}
+        </button>
+      </div>
+
+      <ul v-if="!nearbyLoading && filteredNearbyPlaces.length" class="nearby-list">
+        <li v-for="place in filteredNearbyPlaces" :key="place.id + place.title">
+          <strong>{{ place.title }}</strong>
+          <span>{{ place.category }} | {{ place.address }}</span>
+          <span class="distance">직선거리 {{ typeof place.distanceKm === 'number' ? `${place.distanceKm.toFixed(2)}km` : '-' }}</span>
+        </li>
+      </ul>
+      <p v-else-if="nearbyLoading" class="map-empty">주변 장소를 불러오는 중입니다.</p>
+      <p v-else-if="nearbyErrorMessage" class="map-empty">{{ nearbyErrorMessage }}</p>
+      <p v-else class="map-empty">조건에 맞는 주변 장소가 없습니다.</p>
     </section>
   </main>
 
@@ -199,6 +277,17 @@ h2 {
   font-weight: 700;
 }
 
+.related-link {
+  display: inline-flex;
+  margin-top: 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #c9d8c4;
+  padding: 8px 12px;
+  color: #3e5a4e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .description {
   margin: 12px 0 0;
   color: #3d564b;
@@ -225,6 +314,64 @@ h3 {
   border-radius: 12px;
   color: #5f7468;
   background: #f9fcf6;
+}
+
+.distance-note {
+  margin: 0 0 10px;
+  color: #667b70;
+  font-size: 13px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filter-btn {
+  border: 1px solid #d2ddd0;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: #426256;
+  padding: 7px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.nearby-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.nearby-list li {
+  border: 1px solid #dfe7da;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.nearby-list strong {
+  color: #2a4338;
+}
+
+.nearby-list span {
+  color: #5f7469;
+  font-size: 13px;
+}
+
+.nearby-list .distance {
+  font-weight: 800;
 }
 
 @media (max-width: 760px) {

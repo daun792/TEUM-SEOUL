@@ -25,6 +25,18 @@ function mapFestival(item) {
   }
 }
 
+function mapNearbyPlace(item) {
+  return {
+    id: String(item.content_id ?? item.id),
+    title: item.title || item.name || '장소명 없음',
+    category: item.category || '기타',
+    address: item.address || item.addr1 || '주소 정보 없음',
+    lat: item.lat ?? item.latitude ?? null,
+    lng: item.lng ?? item.longitude ?? null,
+    distanceKm: item.distance_km ?? null,
+  }
+}
+
 export async function getFestivalList(params = {}) {
   const search = new URLSearchParams()
   if (params.page) search.set('page', String(params.page))
@@ -39,4 +51,21 @@ export async function getFestivalList(params = {}) {
 export async function getFestivalById(id) {
   const payload = await requestJson(`/api/festivals/${encodeURIComponent(String(id))}`)
   return payload ? mapFestival(payload) : null
+}
+
+export async function getFestivalNearby(id, params = {}) {
+  const search = new URLSearchParams()
+  if (params.radiusKm) search.set('radius_km', String(params.radiusKm))
+  if (params.categories?.length) search.set('categories', params.categories.join(','))
+  if (params.limit) search.set('limit', String(params.limit))
+  const query = search.toString()
+
+  const payload = await requestJson(
+    `/api/festivals/${encodeURIComponent(String(id))}/nearby${query ? `?${query}` : ''}`,
+  )
+
+  return {
+    items: Array.isArray(payload?.items) ? payload.items.map(mapNearbyPlace) : [],
+    total: payload?.total || 0,
+  }
 }

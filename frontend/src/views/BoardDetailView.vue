@@ -56,8 +56,12 @@ watch(
 
   <main v-else-if="post" class="container detail-page">
     <section class="section-card detail-card">
+      <p class="badge">{{ post.category }}</p>
       <h2>{{ post.title }}</h2>
       <p class="meta">{{ post.author }} | {{ post.createdAt }}</p>
+      <RouterLink v-if="post.festivalId" class="festival-link" :to="`/festivals/${post.festivalId}`">
+        연결된 축제 상세 보기
+      </RouterLink>
       <div class="content">{{ post.content }}</div>
 
       <div class="actions">
@@ -95,6 +99,25 @@ h2 {
 .meta {
   color: #6f8178;
   margin: 8px 0 16px;
+}
+
+.badge {
+  margin: 0 0 6px;
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #edf6e8;
+  color: #3f5d50;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.festival-link {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: #3e5a4d;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .content {
