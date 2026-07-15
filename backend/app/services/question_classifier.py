@@ -28,6 +28,8 @@ def extract_keyword(message: str):
         "쇼핑",
         "호텔",
         "문화시설",
+        "여행코스",
+        "여행 코스",
         "레포츠"
     ]
 
@@ -125,7 +127,7 @@ def classify_question(message: str):
 
 
     # 여행코스
-    if "여행코스" in message or "코스" in message:
+    if "여행코스" in message or "여행 코스" in message:
 
         return {
             "question_type": "recommend",
