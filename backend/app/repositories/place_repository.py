@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database.models import Place
@@ -5,12 +6,8 @@ from app.database.models import Place
 
 class PlaceRepository:
 
-
     def __init__(self, db: Session):
-
         self.db = db
-
-
 
     def search_places(
         self,
@@ -21,40 +18,25 @@ class PlaceRepository:
 
         query = self.db.query(Place)
 
-
         if keyword:
-
             query = query.filter(
-                Place.title.like(
-                    f"%{keyword}%"
+                or_(
+                    Place.title.like(f"%{keyword}%"),
+                    Place.addr1.like(f"%{keyword}%")
                 )
             )
 
-
         if category:
-
             query = query.filter(
                 Place.category == category
             )
 
+        return query.limit(limit).all()
 
-        return (
-            query
-            .limit(limit)
-            .all()
-        )
-
-
-
-    def get_by_title(
-        self,
-        title: str
-    ):
+    def get_by_title(self, title: str):
 
         return (
             self.db.query(Place)
-            .filter(
-                Place.title == title
-            )
+            .filter(Place.title == title)
             .first()
         )
