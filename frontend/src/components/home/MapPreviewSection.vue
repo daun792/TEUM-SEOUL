@@ -7,6 +7,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { getPlaces } from '../../services/placesApi'
+import { getFestivalList } from '../../services/festivalsApi'
 import { MAP_FILTERS, placeTypeLabel, toApiCategory } from '../../utils/placeFilters'
 
 L.Icon.Default.mergeOptions({
@@ -27,6 +28,17 @@ const selectedFilter = ref('전체')
 const filters = MAP_FILTERS
 const allPlaces = ref([])
 const filteredPlaces = computed(() => allPlaces.value)
+
+const mapFestivalFallback = (festivals) =>
+  festivals
+    .filter((festival) => typeof festival.lat === 'number' && typeof festival.lng === 'number')
+    .map((festival) => ({
+      id: `festival-${festival.id}`,
+      name: festival.title,
+      type: festival.category || '축제공연행사',
+      lat: festival.lat,
+      lng: festival.lng,
+    }))
 
 const categoryToMapFilter = {
   전체: '전체',
@@ -52,8 +64,18 @@ const loadPlaces = async () => {
 
     const page = await getPlaces(params)
     allPlaces.value = page.items.filter((place) => typeof place.lat === 'number' && typeof place.lng === 'number')
+
+    if (!allPlaces.value.length) {
+      const festivals = await getFestivalList({ page: 1, size: 200 })
+      allPlaces.value = mapFestivalFallback(festivals)
+    }
   } catch {
-    allPlaces.value = []
+    try {
+      const festivals = await getFestivalList({ page: 1, size: 200 })
+      allPlaces.value = mapFestivalFallback(festivals)
+    } catch {
+      allPlaces.value = []
+    }
   }
 }
 

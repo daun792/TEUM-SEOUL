@@ -64,6 +64,8 @@ def list_places(
         raise HTTPException(status_code=422, detail="lat and lng are required when radius_km is provided")
 
     filters = []
+    # Map screens require valid coordinates, so keep only mappable rows.
+    filters.extend([Place.mapy.is_not(None), Place.mapx.is_not(None)])
 
     if q:
         keyword = f"%{q.strip()}%"
@@ -79,8 +81,6 @@ def list_places(
         longitude_delta = radius_km / max(111.0 * 0.7, 1)
         filters.extend(
             [
-                Place.mapy.is_not(None),
-                Place.mapx.is_not(None),
                 Place.mapy.between(lat - latitude_delta, lat + latitude_delta),
                 Place.mapx.between(lng - longitude_delta, lng + longitude_delta),
             ]

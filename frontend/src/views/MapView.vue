@@ -6,6 +6,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { getPlaces } from '../services/placesApi'
+import { getFestivalList } from '../services/festivalsApi'
 import { MAP_FILTERS, placeTypeLabel, toApiCategory } from '../utils/placeFilters'
 
 L.Icon.Default.mergeOptions({
@@ -25,6 +26,17 @@ const filteredPlaces = computed(() => {
   return places.value
 })
 
+const mapFestivalFallback = (festivals) =>
+  festivals
+    .filter((festival) => typeof festival.lat === 'number' && typeof festival.lng === 'number')
+    .map((festival) => ({
+      id: `festival-${festival.id}`,
+      name: festival.title,
+      type: festival.category || '축제공연행사',
+      lat: festival.lat,
+      lng: festival.lng,
+    }))
+
 const loadPlaces = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -42,9 +54,22 @@ const loadPlaces = async () => {
 
     const page = await getPlaces(params)
     places.value = page.items.filter((place) => typeof place.lat === 'number' && typeof place.lng === 'number')
+
+    if (!places.value.length) {
+      const festivals = await getFestivalList({ page: 1, size: 200 })
+      places.value = mapFestivalFallback(festivals)
+    }
   } catch (error) {
-    places.value = []
-    errorMessage.value = error instanceof Error ? error.message : '장소 데이터를 불러오지 못했습니다.'
+    try {
+      const festivals = await getFestivalList({ page: 1, size: 200 })
+      places.value = mapFestivalFallback(festivals)
+      errorMessage.value = places.value.length
+        ? '장소 API 응답이 없어 축제 데이터만 표시 중입니다.'
+        : (error instanceof Error ? error.message : '장소 데이터를 불러오지 못했습니다.')
+    } catch {
+      places.value = []
+      errorMessage.value = error instanceof Error ? error.message : '장소 데이터를 불러오지 못했습니다.'
+    }
   } finally {
     loading.value = false
   }
@@ -117,6 +142,7 @@ onBeforeUnmount(() => {
             <span>{{ placeTypeLabel(place) }}</span>
           </li>
         </ul>
+        <p v-if="!loading && !filteredPlaces.length" class="state-text">표시 가능한 위치 데이터가 없습니다.</p>
         <p v-if="loading" class="state-text">장소 데이터를 불러오는 중입니다...</p>
         <p v-if="errorMessage" class="state-text error">{{ errorMessage }}</p>
       </aside>
