@@ -38,60 +38,104 @@ const cancel = () => {
 </script>
 
 <template>
-  <section class="write">
-    <h2>{{ isEditMode ? '게시글 수정' : '게시글 작성' }}</h2>
+  <main class="container write-page">
+    <section class="section-card write-card">
+      <h2>{{ isEditMode ? '게시글 수정' : '게시글 작성' }}</h2>
 
-    <form class="form" @submit.prevent="submitForm">
-      <label>
-        제목
-        <input v-model="form.title" type="text" placeholder="제목을 입력하세요" required />
-      </label>
+      <form class="form" @submit.prevent="submitForm">
+        <label>
+          제목
+          <input v-model="form.title" type="text" placeholder="제목을 입력하세요" required />
+        </label>
 
-      <label>
-        내용
-        <textarea v-model="form.content" rows="10" placeholder="내용을 입력하세요" required />
-      </label>
+        <label>
+          내용
+          <textarea v-model="form.content" rows="10" placeholder="내용을 입력하세요" required />
+        </label>
 
-      <div class="actions">
-        <button type="submit">{{ isEditMode ? '수정하기' : '등록하기' }}</button>
-        <button type="button" class="ghost" @click="cancel">취소</button>
-      </div>
-    </form>
-  </section>
+        <div class="actions">
+          <button type="submit" class="submit">{{ isEditMode ? '수정하기' : '등록하기' }}</button>
+          <button type="button" class="ghost" @click="cancel">취소</button>
+        </div>
+      </form>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.write {
-  max-width: 900px;
+.write-page {
+  padding: 24px 0 40px;
 }
+
+.write-card {
+  padding: 20px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  color: #223b30;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
 .form {
   display: grid;
   gap: 14px;
 }
+
 label {
   display: grid;
   gap: 8px;
-  font-weight: 600;
+  font-weight: 800;
+  color: #2c4438;
 }
+
 input,
 textarea {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px 12px;
+  border: 1px solid #dbe3d8;
+  border-radius: 12px;
+  background: #fcfef9;
+  padding: 11px 12px;
   font-size: 14px;
 }
+
+input:focus,
+textarea:focus {
+  outline: 2px solid rgba(105, 182, 47, 0.22);
+  border-color: var(--color-primary);
+}
+
 .actions {
   display: flex;
   gap: 8px;
 }
+
 button {
   border: none;
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  padding: 9px 14px;
+  font-weight: 800;
   cursor: pointer;
 }
+
+.submit {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 .ghost {
-  background: #f3f4f6;
+  background: #eef2eb;
+  color: #42584d;
+}
+
+@media (max-width: 760px) {
+  .write-page {
+    padding-top: 18px;
+  }
+
+  h2 {
+    font-size: 24px;
+  }
 }
 </style>
