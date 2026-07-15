@@ -1,133 +1,264 @@
 <script setup>
 import { ref } from 'vue'
 
-const open = ref(false)
-const input = ref('')
+const isOpen = ref(false)
+
+const suggestions = [
+  '이번 주말 축제',
+  '무료 축제',
+  '아이와 갈 만한 곳',
+  '축제 주변 관광지',
+]
+
 const messages = ref([
-  { role: 'bot', text: '안녕하세요. 틈서울 챗봇입니다. 축제나 주변 장소를 물어보세요.' },
+  {
+    role: 'bot',
+    text: '서울 축제 도우미입니다. 찾고 싶은 주제를 눌러보세요.',
+  },
 ])
 
-const toggle = () => {
-  open.value = !open.value
+const toggleChat = () => {
+  isOpen.value = !isOpen.value
 }
 
-const send = () => {
-  const text = input.value.trim()
-  if (!text) return
-
-  messages.value.push({ role: 'user', text })
+const askSuggestion = (q) => {
+  messages.value.push({ role: 'user', text: q })
   messages.value.push({
     role: 'bot',
-    text: '더미 응답입니다. 백엔드 챗봇 API 연결 시 실제 답변으로 바뀝니다.',
+    text: '지금은 UI 미리보기 상태예요. 실제 답변은 API 연결 후 제공됩니다.',
   })
-  input.value = ''
 }
 </script>
 
 <template>
-  <div class="chatbot">
-    <button class="fab" type="button" @click="toggle">
-      {{ open ? '닫기' : '챗봇' }}
-    </button>
-
-    <section v-if="open" class="panel">
-      <h3>틈서울 챗봇</h3>
+  <div class="chatbot-wrap">
+    <section v-if="isOpen" class="chat-panel section-card" aria-label="서울 축제 도우미">
+      <header class="panel-head">
+        <div class="bot-meta">
+          <div class="bot-avatar" aria-hidden="true">🙂</div>
+          <div>
+            <p class="name">서울 축제 도우미</p>
+            <p class="sub">무엇을 찾고 있나요?</p>
+          </div>
+        </div>
+        <button type="button" class="close-btn" @click="toggleChat">닫기</button>
+      </header>
 
       <div class="messages">
         <p
-          v-for="(msg, idx) in messages"
-          :key="idx"
-          :class="['msg', msg.role]"
+          v-for="(msg, index) in messages"
+          :key="index"
+          class="msg"
+          :class="msg.role"
         >
-          <strong>{{ msg.role === 'bot' ? '챗봇' : '나' }}</strong>
           {{ msg.text }}
         </p>
       </div>
 
-      <form class="input-row" @submit.prevent="send">
-        <input
-          v-model="input"
-          type="text"
-          placeholder="질문을 입력하세요"
-        />
-        <button type="submit">전송</button>
-      </form>
+      <div class="quick-qs">
+        <button
+          v-for="item in suggestions"
+          :key="item"
+          type="button"
+          class="q-chip"
+          @click="askSuggestion(item)"
+        >
+          {{ item }}
+        </button>
+      </div>
     </section>
+
+    <button
+      v-if="!isOpen"
+      type="button"
+      class="chat-fab"
+      aria-label="서울 축제 도우미 열기"
+      @click="toggleChat"
+    >
+      <span class="fab-emoji" aria-hidden="true">🙂</span>
+      <span class="fab-text">
+        <strong>서울 축제 도우미</strong>
+        <small>무엇을 찾고 있나요?</small>
+      </span>
+    </button>
   </div>
 </template>
 
 <style scoped>
-.chatbot {
+.chatbot-wrap {
   position: fixed;
   right: 20px;
-  bottom: 20px;
-  z-index: 1000;
+  bottom: 18px;
+  z-index: 1200;
 }
 
-.fab {
-  width: 64px;
-  height: 64px;
-  border: none;
+.chat-fab {
+  border: 1px solid #dce8d5;
+  background: #ffffff;
   border-radius: 999px;
-  background: #0f766e;
-  color: #fff;
-  font-weight: 700;
+  padding: 8px 12px;
+  min-height: 58px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 24px rgba(31, 61, 50, 0.12);
   cursor: pointer;
 }
 
-.panel {
-  width: 320px;
-  height: 420px;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 14px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  padding: 12px;
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.fab-emoji {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e9f8e5;
+  font-size: 22px;
 }
 
-.panel h3 {
-  margin: 0;
+.fab-text {
+  display: grid;
+  text-align: left;
+  color: #284b3e;
+  line-height: 1.2;
 }
 
-.messages {
-  flex: 1;
-  overflow: auto;
-  background: #f9fafb;
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.msg {
-  margin: 0 0 8px;
+.fab-text strong {
   font-size: 14px;
 }
 
-.msg.user {
-  text-align: right;
+.fab-text small {
+  font-size: 12px;
+  color: #5d786d;
 }
 
-.input-row {
+.chat-panel {
+  width: 340px;
+  max-height: 520px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  border-radius: 18px;
+}
+
+.panel-head {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bot-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.bot-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e9f8e5;
+}
+
+.name {
+  margin: 0;
+  font-weight: 800;
+  color: #1f3d32;
+}
+
+.sub {
+  margin: 2px 0 0;
+  color: #648176;
+  font-size: 12px;
+}
+
+.close-btn {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.messages {
+  min-height: 120px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid #e7eee2;
+  border-radius: 14px;
+  background: #fbfef8;
+  padding: 10px;
+  display: grid;
   gap: 8px;
 }
 
-.input-row input {
-  flex: 1;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+.msg {
+  margin: 0;
+  max-width: 90%;
   padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
-.input-row button {
-  border: none;
-  border-radius: 8px;
+.msg.bot {
+  background: #eef9e7;
+  color: #28503f;
+}
+
+.msg.user {
+  margin-left: auto;
+  background: #eaf3ff;
+  color: #24425f;
+}
+
+.quick-qs {
+  display: grid;
+  gap: 8px;
+}
+
+.q-chip {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 999px;
   padding: 8px 12px;
-  background: #0f766e;
-  color: #fff;
+  text-align: left;
+  font-weight: 700;
+  color: #2f5447;
   cursor: pointer;
+}
+
+.q-chip:hover {
+  border-color: #b8d8af;
+  background: #f7fdf3;
+}
+
+@media (max-width: 768px) {
+  .chatbot-wrap {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .chat-panel {
+    width: min(92vw, 340px);
+  }
+
+  .chat-fab {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .fab-text {
+    display: none;
+  }
+
+  .fab-emoji {
+    width: 42px;
+    height: 42px;
+  }
 }
 </style>

@@ -1,24 +1,20 @@
 <script setup>
+import AppHeader from './components/common/AppHeader.vue'
 import FloatingChatbot from './components/chat/FloatingChatbot.vue'
 </script>
 
 <template>
   <div class="app-shell">
-    <header class="header">
-      <h1 class="logo">틈서울</h1>
-      <nav class="nav">
-        <router-link to="/">홈</router-link>
-        <router-link to="/board">게시판</router-link>
-        <router-link to="/about">소개</router-link>
-      </nav>
-    </header>
+    <AppHeader />
 
     <main class="main">
       <router-view />
     </main>
 
     <footer class="footer">
-      <p>© 2026 틈서울</p>
+      <div class="container footer-inner">
+        <p>© 2026 틈서울</p>
+      </div>
     </footer>
 
     <FloatingChatbot />
@@ -32,36 +28,20 @@ import FloatingChatbot from './components/chat/FloatingChatbot.vue'
   flex-direction: column;
 }
 
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  margin: 0;
-  font-size: 20px;
-}
-
-.nav {
-  display: flex;
-  gap: 14px;
-}
-
 .main {
   flex: 1;
-  padding: 20px;
+  padding: 20px 0 40px;
 }
 
 .footer {
-  border-top: 1px solid #e5e7eb;
-  padding: 12px 20px;
-  background: #fafafa;
+  border-top: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.footer-inner {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  color: #5f766d;
 }
 </style>

@@ -21,3 +21,11 @@ export const posts = [
     createdAt: '2026-07-13',
   },
 ]
+
+export const getPostList = async () => {
+  return posts
+}
+
+export const getPostById = async (id) => {
+  return posts.find((item) => item.id === String(id)) || null
+}

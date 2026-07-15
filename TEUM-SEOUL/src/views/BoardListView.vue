@@ -1,8 +1,14 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { posts } from '../mocks/posts'
+import { getPostList } from '../mocks/posts'
 
 const router = useRouter()
+const posts = ref([])
+
+onMounted(async () => {
+  posts.value = await getPostList()
+})
 
 const goDetail = (id) => {
   router.push('/board/' + id)
@@ -21,7 +27,12 @@ const goWrite = () => {
     </div>
 
     <ul class="post-list">
-      <li v-for="post in posts" :key="post.id" class="post-item" @click="goDetail(post.id)">
+      <li
+        v-for="post in posts"
+        :key="post.id"
+        class="post-item"
+        @click="goDetail(post.id)"
+      >
         <h3>{{ post.title }}</h3>
         <p>{{ post.author }} | {{ post.createdAt }}</p>
       </li>

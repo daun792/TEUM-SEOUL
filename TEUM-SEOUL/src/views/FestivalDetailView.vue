@@ -1,12 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { festivals } from '../mocks/festivals'
+import { getFestivalById } from '../mocks/festivals'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -16,12 +16,10 @@ L.Icon.Default.mergeOptions({
 
 const route = useRoute()
 const mapEl = ref(null)
+const festival = ref(null)
+
 let map = null
 let marker = null
-
-const festival = computed(() =>
-  festivals.find((item) => item.id === String(route.params.id))
-)
 
 function renderMap() {
   if (!festival.value || !mapEl.value) return
@@ -41,13 +39,22 @@ function renderMap() {
   marker = L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup()
 }
 
-onMounted(() => {
+const loadFestival = async () => {
+  festival.value = await getFestivalById(route.params.id)
+  await nextTick()
   renderMap()
+}
+
+onMounted(async () => {
+  await loadFestival()
 })
 
-watch(festival, () => {
-  renderMap()
-})
+watch(
+  () => route.params.id,
+  async () => {
+    await loadFestival()
+  }
+)
 
 onBeforeUnmount(() => {
   if (map) {
