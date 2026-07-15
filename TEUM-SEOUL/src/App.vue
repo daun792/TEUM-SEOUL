@@ -11,12 +11,6 @@ import FloatingChatbot from './components/chat/FloatingChatbot.vue'
       <router-view />
     </main>
 
-    <footer class="footer">
-      <div class="container footer-inner">
-        <p>© 2026 틈서울</p>
-      </div>
-    </footer>
-
     <FloatingChatbot />
   </div>
 </template>
@@ -24,24 +18,9 @@ import FloatingChatbot from './components/chat/FloatingChatbot.vue'
 <style scoped>
 .app-shell {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .main {
-  flex: 1;
-  padding: 20px 0 40px;
-}
-
-.footer {
-  border-top: 1px solid var(--color-border);
-  background: #fff;
-}
-
-.footer-inner {
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  color: #5f766d;
+  min-height: calc(100vh - 76px);
 }
 </style>

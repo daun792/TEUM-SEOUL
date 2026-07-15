@@ -4,10 +4,6 @@ import { RouterLink } from 'vue-router'
 
 const mobileOpen = ref(false)
 
-const toggleMobileMenu = () => {
-  mobileOpen.value = !mobileOpen.value
-}
-
 const closeMobileMenu = () => {
   mobileOpen.value = false
 }
@@ -16,9 +12,9 @@ const closeMobileMenu = () => {
 <template>
   <header class="app-header">
     <div class="container header-inner">
-      <RouterLink class="brand" to="/" @click="closeMobileMenu">
-        <span class="pin" aria-hidden="true">📍</span>
-        <span class="brand-text">틈서울</span>
+      <RouterLink class="brand" to="/" aria-label="틈서울 홈" @click="closeMobileMenu">
+        <span class="brand-word">틈서울</span>
+        <span class="brand-pin" aria-hidden="true"></span>
       </RouterLink>
 
       <nav class="desktop-nav" aria-label="주요 메뉴">
@@ -29,34 +25,32 @@ const closeMobileMenu = () => {
       </nav>
 
       <div class="desktop-actions">
-        <button type="button" class="icon-btn" aria-label="검색">검색</button>
-        <button type="button" class="icon-btn" aria-label="북마크">북마크</button>
-        <button type="button" class="week-btn">이번 주 축제</button>
+        <button type="button" class="round-action" aria-label="검색">
+          <span aria-hidden="true">⌕</span>
+        </button>
+        <button type="button" class="round-action" aria-label="북마크">
+          <span aria-hidden="true">♡</span>
+        </button>
+        <RouterLink class="week-btn" to="/festivals">이번 주 축제</RouterLink>
       </div>
 
       <button
         type="button"
         class="mobile-menu-btn"
-        :aria-expanded="mobileOpen ? 'true' : 'false'"
+        :aria-expanded="mobileOpen"
         aria-controls="mobile-nav"
-        @click="toggleMobileMenu"
+        aria-label="메뉴 열기"
+        @click="mobileOpen = !mobileOpen"
       >
-        메뉴
+        <span></span><span></span><span></span>
       </button>
     </div>
 
-    <nav
-      v-show="mobileOpen"
-      id="mobile-nav"
-      class="mobile-nav"
-      aria-label="모바일 메뉴"
-    >
-      <div class="container mobile-nav-inner">
-        <RouterLink to="/festivals" @click="closeMobileMenu">축제 캘린더</RouterLink>
-        <RouterLink to="/map" @click="closeMobileMenu">지도 탐색</RouterLink>
-        <RouterLink to="/board" @click="closeMobileMenu">게시판</RouterLink>
-        <RouterLink to="/about" @click="closeMobileMenu">틈서울 소개</RouterLink>
-      </div>
+    <nav v-if="mobileOpen" id="mobile-nav" class="mobile-nav" aria-label="모바일 메뉴">
+      <RouterLink to="/festivals" @click="closeMobileMenu">축제 캘린더</RouterLink>
+      <RouterLink to="/map" @click="closeMobileMenu">지도 탐색</RouterLink>
+      <RouterLink to="/board" @click="closeMobileMenu">게시판</RouterLink>
+      <RouterLink to="/about" @click="closeMobileMenu">틈서울 소개</RouterLink>
     </nav>
   </header>
 </template>
@@ -65,131 +59,193 @@ const closeMobileMenu = () => {
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border);
+  z-index: 1000;
+  border-bottom: 1px solid rgba(224, 225, 214, 0.92);
+  background: rgba(255, 254, 249, 0.94);
+  backdrop-filter: blur(16px);
 }
 
 .header-inner {
-  min-height: 72px;
+  min-height: 76px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 220px 1fr 260px;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .brand {
   display: inline-flex;
+  width: fit-content;
   align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  color: var(--color-primary-dark);
+  gap: 7px;
 }
 
-.pin {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #eaf8e6;
+.brand-word {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.09em;
+  color: #274f2d;
 }
 
-.brand-text {
-  font-size: 20px;
-  letter-spacing: -0.02em;
+.brand-word::first-letter {
+  color: var(--color-primary);
+}
+
+.brand-pin {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-primary);
+  transform: rotate(-45deg);
+}
+
+.brand-pin::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  left: 5px;
+  top: 5px;
+  border-radius: 50%;
+  background: #fff;
 }
 
 .desktop-nav {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: clamp(22px, 3vw, 52px);
 }
 
 .desktop-nav a {
-  padding: 8px 10px;
-  border-radius: 999px;
-  font-weight: 600;
-  color: var(--color-text);
+  position: relative;
+  padding: 8px 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: #1f2d27;
 }
 
-.desktop-nav a.router-link-active {
-  background: #eef9e7;
-  color: var(--color-primary-dark);
+.desktop-nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-primary);
+  transition: right 0.2s ease;
+}
+
+.desktop-nav a:hover::after,
+.desktop-nav a.router-link-active::after {
+  right: 0;
 }
 
 .desktop-actions {
-  display: inline-flex;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.icon-btn,
-.week-btn,
-.mobile-menu-btn {
+.round-action {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: #fff;
-  color: var(--color-text);
-  padding: 8px 12px;
+  color: #1c2b24;
   cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .week-btn {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #75bc36, #4c9c27);
   color: #fff;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(76, 156, 39, 0.2);
 }
 
-.mobile-menu-btn {
+.mobile-menu-btn,
+.mobile-nav {
   display: none;
 }
 
-.mobile-nav {
-  border-top: 1px solid var(--color-border);
-  background: #fff;
-}
+@media (max-width: 1100px) {
+  .header-inner {
+    grid-template-columns: auto 1fr auto;
+  }
 
-.mobile-nav-inner {
-  display: grid;
-  gap: 8px;
-  padding: 12px 0 16px;
-}
+  .desktop-nav {
+    gap: 20px;
+  }
 
-.mobile-nav a {
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-.mobile-nav a.router-link-active {
-  background: #eef9e7;
-  color: var(--color-primary-dark);
-}
-
-@media (max-width: 1024px) {
-  .desktop-actions {
+  .desktop-actions .round-action {
     display: none;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 780px) {
   .header-inner {
-    grid-template-columns: auto auto;
-    justify-content: space-between;
+    min-height: 66px;
+    grid-template-columns: 1fr auto;
   }
 
-  .desktop-nav {
+  .brand-word {
+    font-size: 24px;
+  }
+
+  .desktop-nav,
+  .desktop-actions {
     display: none;
   }
 
   .mobile-menu-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-content: center;
+    gap: 5px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .mobile-menu-btn span {
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: #26382f;
+  }
+
+  .mobile-nav {
+    display: grid;
+    gap: 4px;
+    padding: 10px 14px 16px;
+    border-top: 1px solid var(--color-border);
+    background: #fffef9;
+  }
+
+  .mobile-nav a {
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-weight: 750;
+  }
+
+  .mobile-nav a.router-link-active {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
   }
 }
 </style>

@@ -1,53 +1,52 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
+import { useRouter } from 'vue-router'
+import { getFestivalList } from '../../mocks/festivals'
 
-const calendarRef = ref(null)
-const selectedDate = ref('')
+const selectedDate = ref('2026-07-18')
+const router = useRouter()
+const props = defineProps({
+  selectedCategory: {
+    type: String,
+    default: '오늘',
+  },
+})
 
-const categoryClass = {
-  공연: 'cat-performance',
-  전시: 'cat-exhibition',
-  전통: 'cat-tradition',
-  체험: 'cat-experience',
-  기타: 'cat-etc',
-}
+const categoryPalette = ['#6b5bd1', '#42a9cd', '#69b62f', '#f25752', '#ff8a24']
+const events = ref([])
 
-const events = [
-  { title: '한강 불빛 축제', start: '2026-07-18', category: '공연' },
-  { title: '서울숲 음악 페스티벌', start: '2026-07-19', category: '공연' },
-  { title: '북촌 한옥 야행', start: '2026-07-24', category: '전통' },
-  { title: '성수 아트 전시', start: '2026-07-25', category: '전시' },
-  { title: '가족 체험 마켓', start: '2026-07-27', category: '체험' },
-  { title: '야외 버스킹 데이', start: '2026-07-29', category: '기타' },
-].map((item, index) => ({
-  id: String(index + 1),
-  title: item.title,
-  start: item.start,
-  allDay: true,
-  display: 'list-item',
-  classNames: [categoryClass[item.category] || 'cat-etc'],
-  extendedProps: { category: item.category },
-}))
+onMounted(async () => {
+  const festivals = await getFestivalList()
+  events.value = festivals.map((festival, index) => ({
+    id: festival.id,
+    title: festival.title,
+    start: festival.start,
+    end: festival.end,
+    color: categoryPalette[index % categoryPalette.length],
+    display: 'list-item',
+    extendedProps: {
+      tags:
+        index === 0
+          ? ['오늘', '이번 주말', '무료 축제', '공연', '야외 행사']
+          : index === 1
+            ? ['오늘', '이번 주말', '무료 축제', '전시']
+            : ['전통'],
+    },
+  }))
+})
 
-const toDateString = (date) => {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+const filteredEvents = computed(() =>
+  events.value.filter((event) => event.extendedProps.tags.includes(props.selectedCategory)),
+)
 
-const handleDateClick = (info) => {
-  selectedDate.value = info.dateStr
-  info.view.calendar.render()
-}
-
-const calendarOptions = {
+const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, interactionPlugin],
   initialView: 'dayGridMonth',
+  initialDate: '2026-07-18',
   locale: koLocale,
   headerToolbar: {
     left: 'prev',
@@ -55,169 +54,191 @@ const calendarOptions = {
     right: 'next',
   },
   height: 'auto',
-  fixedWeekCount: false,
-  events,
-  dateClick: handleDateClick,
-  dayCellClassNames: (arg) => {
-    const day = toDateString(arg.date)
-    return selectedDate.value === day ? ['selected-day'] : []
+  fixedWeekCount: true,
+  showNonCurrentDates: true,
+  events: filteredEvents.value,
+  dateClick: (info) => {
+    selectedDate.value = info.dateStr
   },
-}
+  eventClick: (info) => {
+    router.push(`/festivals/${info.event.id}`)
+  },
+  dayCellClassNames: (info) => (info.date.toISOString().slice(0, 10) === selectedDate.value ? ['selected-day'] : []),
+}))
 </script>
 
 <template>
-  <section class="container calendar-section section-card">
-    <div class="section-head">
-      <h3>축제 캘린더</h3>
-      <p>날짜를 선택해 이번 달 축제를 확인해보세요.</p>
-    </div>
+  <section class="calendar-section section-card">
+    <header class="section-head">
+      <h2>축제 캘린더</h2>
+      <RouterLink to="/festivals">더보기 <span aria-hidden="true">›</span></RouterLink>
+    </header>
 
-    <div class="legend">
-      <span class="dot performance">공연</span>
-      <span class="dot exhibition">전시</span>
-      <span class="dot tradition">전통</span>
-      <span class="dot experience">체험</span>
-      <span class="dot etc">기타</span>
-    </div>
+    <FullCalendar :options="calendarOptions" />
 
-    <FullCalendar ref="calendarRef" :options="calendarOptions" />
+    <div class="legend" aria-label="축제 유형 범례">
+      <span class="performance">공연</span>
+      <span class="exhibition">전시</span>
+      <span class="tradition">전통</span>
+      <span class="experience">체험</span>
+      <span class="etc">기타</span>
+    </div>
   </section>
 </template>
 
 <style scoped>
 .calendar-section {
-  padding: 18px;
-  display: grid;
-  gap: 14px;
+  height: 100%;
+  padding: 16px;
+  border-radius: 18px;
 }
 
-.section-head h3 {
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+h2 {
   margin: 0;
-  font-size: 24px;
-  color: #25453a;
+  color: #24372e;
+  font-size: 20px;
+  letter-spacing: -0.035em;
 }
 
-.section-head p {
-  margin: 6px 0 0;
-  color: #5c776d;
+.section-head a {
+  color: #6b756f;
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 11px;
+  margin-top: 12px;
+  color: #5e6d65;
+  font-size: 10px;
+  font-weight: 750;
 }
 
-.dot {
+.legend span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f7fbf5;
-  border: 1px solid var(--color-border);
-  font-size: 13px;
-  font-weight: 700;
-  color: #315247;
+  gap: 4px;
 }
 
-.dot::before {
+.legend span::before {
   content: '';
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
 }
 
-.dot.performance::before {
-  background: #63b94f;
-}
-.dot.exhibition::before {
-  background: #f45b4f;
-}
-.dot.tradition::before {
-  background: #ff8a3d;
-}
-.dot.experience::before {
-  background: #a9e4ec;
-}
-.dot.etc::before {
-  background: #b9dd5a;
-}
+.performance::before { background: #6b5bd1; }
+.exhibition::before { background: #42a9cd; }
+.tradition::before { background: #69b62f; }
+.experience::before { background: #f25752; }
+.etc::before { background: #ff8a24; }
 
-/* FullCalendar 커스텀 */
 :deep(.fc) {
-  --fc-border-color: #e7e7df;
-  --fc-button-text-color: #1f3d32;
-  --fc-button-bg-color: #ffffff;
-  --fc-button-border-color: #dfe5d7;
-  --fc-button-hover-bg-color: #eef9e7;
-  --fc-button-hover-border-color: #cfe4bf;
-  --fc-button-active-bg-color: #e7f8de;
-  --fc-button-active-border-color: #c3deb1;
-  --fc-page-bg-color: #ffffff;
-  --fc-neutral-bg-color: #fbfdf7;
-  --fc-today-bg-color: #f4fde9;
+  --fc-border-color: transparent;
+  --fc-button-text-color: #304139;
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: transparent;
+  --fc-button-hover-bg-color: #f2f5ed;
+  --fc-button-hover-border-color: transparent;
+  --fc-button-active-bg-color: #edf4e6;
+  --fc-button-active-border-color: transparent;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
+  --fc-today-bg-color: transparent;
   font-family: inherit;
 }
 
+:deep(.fc .fc-toolbar) {
+  margin-bottom: 10px;
+}
+
 :deep(.fc .fc-toolbar-title) {
-  font-size: 1.05rem;
-  color: #244438;
+  color: #263a30;
+  font-size: 14px;
+  font-weight: 850;
 }
 
 :deep(.fc .fc-button) {
-  border-radius: 999px;
-  box-shadow: none;
-  padding: 0.35rem 0.7rem;
-}
-
-:deep(.fc .fc-daygrid-day-number) {
-  color: #35574b;
-  font-weight: 600;
-}
-
-:deep(.fc .selected-day .fc-daygrid-day-number) {
-  width: 30px;
-  height: 30px;
+  padding: 3px 7px;
   border-radius: 50%;
-  background: #63b94f;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
+  box-shadow: none !important;
+  font-size: 11px;
+}
+
+:deep(.fc .fc-col-header-cell-cushion) {
+  padding: 5px 0;
+  color: #7b847e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+:deep(.fc-theme-standard td),
+:deep(.fc-theme-standard th) {
+  border: 0;
+}
+
+:deep(.fc .fc-daygrid-day-frame) {
+  min-height: 40px;
+}
+
+:deep(.fc .fc-daygrid-day-top) {
   justify-content: center;
 }
 
-:deep(.fc .fc-event) {
-  border: 0;
-  background: transparent;
-  color: #35574b;
-  font-size: 12px;
+:deep(.fc .fc-daygrid-day-number) {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: #4e5c54;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+:deep(.fc .selected-day .fc-daygrid-day-number) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+:deep(.fc .fc-day-other .fc-daygrid-day-number) {
+  color: #c2c6c3;
+}
+
+:deep(.fc .fc-daygrid-day-events) {
+  min-height: 7px;
+  margin: -2px 0 0;
+}
+
+:deep(.fc .fc-daygrid-event) {
+  justify-content: center;
+  margin: 0;
+  color: transparent;
 }
 
 :deep(.fc .fc-daygrid-event-dot) {
-  border-width: 4px;
-  margin-right: 4px;
+  border-width: 3px;
+  margin: 0;
 }
 
-:deep(.fc .cat-performance .fc-daygrid-event-dot) {
-  border-color: #63b94f;
-}
-:deep(.fc .cat-exhibition .fc-daygrid-event-dot) {
-  border-color: #f45b4f;
-}
-:deep(.fc .cat-tradition .fc-daygrid-event-dot) {
-  border-color: #ff8a3d;
-}
-:deep(.fc .cat-experience .fc-daygrid-event-dot) {
-  border-color: #a9e4ec;
-}
-:deep(.fc .cat-etc .fc-daygrid-event-dot) {
-  border-color: #b9dd5a;
+:deep(.fc .fc-event-title) {
+  display: none;
 }
 
-@media (max-width: 768px) {
-  .calendar-section {
-    padding: 14px;
+@media (max-width: 1320px) {
+  :deep(.fc .fc-daygrid-day-frame) {
+    min-height: 52px;
   }
 }
 </style>

@@ -2,84 +2,47 @@
 import { ref } from 'vue'
 
 const isOpen = ref(false)
+const suggestions = ['이번 주말 축제', '무료 축제', '아이와 갈 만한 곳', '축제 주변 관광지']
+const messages = ref([{ role: 'bot', text: '안녕하세요. 서울 축제 도우미예요.' }])
 
-const suggestions = [
-  '이번 주말 축제',
-  '무료 축제',
-  '아이와 갈 만한 곳',
-  '축제 주변 관광지',
-]
-
-const messages = ref([
-  {
-    role: 'bot',
-    text: '서울 축제 도우미입니다. 찾고 싶은 주제를 눌러보세요.',
-  },
-])
-
-const toggleChat = () => {
-  isOpen.value = !isOpen.value
-}
-
-const askSuggestion = (q) => {
-  messages.value.push({ role: 'user', text: q })
-  messages.value.push({
-    role: 'bot',
-    text: '지금은 UI 미리보기 상태예요. 실제 답변은 API 연결 후 제공됩니다.',
-  })
+const askSuggestion = (question) => {
+  messages.value.push({ role: 'user', text: question })
+  messages.value.push({ role: 'bot', text: '현재는 UI 미리보기 상태입니다.' })
 }
 </script>
 
 <template>
   <div class="chatbot-wrap">
     <section v-if="isOpen" class="chat-panel section-card" aria-label="서울 축제 도우미">
-      <header class="panel-head">
-        <div class="bot-meta">
-          <div class="bot-avatar" aria-hidden="true">🙂</div>
-          <div>
-            <p class="name">서울 축제 도우미</p>
-            <p class="sub">무엇을 찾고 있나요?</p>
-          </div>
+      <header>
+        <div class="bot-avatar asset-placeholder" aria-label="챗봇 캐릭터 이미지 자리"></div>
+        <div>
+          <strong>서울 축제 도우미</strong>
+          <span>무엇을 찾고 있나요?</span>
         </div>
-        <button type="button" class="close-btn" @click="toggleChat">닫기</button>
+        <button type="button" aria-label="챗봇 닫기" @click="isOpen = false">×</button>
       </header>
 
       <div class="messages">
-        <p
-          v-for="(msg, index) in messages"
-          :key="index"
-          class="msg"
-          :class="msg.role"
-        >
-          {{ msg.text }}
+        <p v-for="(message, index) in messages" :key="index" :class="message.role">
+          {{ message.text }}
         </p>
       </div>
 
-      <div class="quick-qs">
-        <button
-          v-for="item in suggestions"
-          :key="item"
-          type="button"
-          class="q-chip"
-          @click="askSuggestion(item)"
-        >
+      <div class="suggestions">
+        <button v-for="item in suggestions" :key="item" type="button" @click="askSuggestion(item)">
           {{ item }}
         </button>
       </div>
     </section>
 
-    <button
-      v-if="!isOpen"
-      type="button"
-      class="chat-fab"
-      aria-label="서울 축제 도우미 열기"
-      @click="toggleChat"
-    >
-      <span class="fab-emoji" aria-hidden="true">🙂</span>
-      <span class="fab-text">
+    <button v-else type="button" class="chat-fab" aria-label="챗봇 열기" @click="isOpen = true">
+      <span class="fab-avatar asset-placeholder" aria-hidden="true"></span>
+      <span class="fab-copy">
         <strong>서울 축제 도우미</strong>
-        <small>무엇을 찾고 있나요?</small>
+        <small>어디로 떠나볼까요?</small>
       </span>
+      <span class="fab-arrow" aria-hidden="true">⌃</span>
     </button>
   </div>
 </template>
@@ -87,178 +50,174 @@ const askSuggestion = (q) => {
 <style scoped>
 .chatbot-wrap {
   position: fixed;
-  right: 20px;
-  bottom: 18px;
-  z-index: 1200;
+  right: 24px;
+  bottom: 22px;
+  z-index: 1500;
 }
 
 .chat-fab {
-  border: 1px solid #dce8d5;
-  background: #ffffff;
-  border-radius: 999px;
-  padding: 8px 12px;
-  min-height: 58px;
-  display: inline-flex;
+  min-width: 310px;
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 56px 1fr 32px;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 10px 24px rgba(31, 61, 50, 0.12);
+  padding: 8px 11px;
+  border: 1px solid #9dcc83;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-float);
   cursor: pointer;
 }
 
-.fab-emoji {
-  width: 40px;
-  height: 40px;
+.fab-avatar,
+.bot-avatar {
   border-radius: 50%;
+}
+
+.fab-avatar {
+  width: 54px;
+  height: 54px;
+}
+
+.fab-avatar::after,
+.bot-avatar::after {
+  content: '캐릭터';
+  padding: 3px 5px;
+  font-size: 7px;
+}
+
+.fab-copy {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.fab-copy strong {
+  color: var(--color-primary-dark);
+  font-size: 15px;
+}
+
+.fab-copy small {
+  color: #6c7a72;
+  font-size: 11px;
+}
+
+.fab-arrow {
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
-  background: #e9f8e5;
-  font-size: 22px;
-}
-
-.fab-text {
-  display: grid;
-  text-align: left;
-  color: #284b3e;
-  line-height: 1.2;
-}
-
-.fab-text strong {
-  font-size: 14px;
-}
-
-.fab-text small {
-  font-size: 12px;
-  color: #5d786d;
+  border-radius: 50%;
+  background: #a5cf8e;
+  color: #fff;
 }
 
 .chat-panel {
-  width: 340px;
-  max-height: 520px;
+  width: min(360px, calc(100vw - 28px));
   padding: 14px;
+  border-radius: 20px;
+}
+
+.chat-panel header {
   display: grid;
-  gap: 12px;
-  border-radius: 18px;
-}
-
-.panel-head {
-  display: flex;
-  justify-content: space-between;
+  grid-template-columns: 44px 1fr 32px;
   align-items: center;
-}
-
-.bot-meta {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 9px;
 }
 
 .bot-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+}
+
+.chat-panel header div:nth-child(2) {
   display: grid;
-  place-items: center;
-  background: #e9f8e5;
 }
 
-.name {
-  margin: 0;
-  font-weight: 800;
-  color: #1f3d32;
+.chat-panel header strong {
+  color: var(--color-primary-dark);
+  font-size: 14px;
 }
 
-.sub {
-  margin: 2px 0 0;
-  color: #648176;
-  font-size: 12px;
+.chat-panel header span {
+  color: #728078;
+  font-size: 11px;
 }
 
-.close-btn {
+.chat-panel header button {
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: 50%;
   background: #fff;
-  padding: 6px 10px;
   cursor: pointer;
 }
 
 .messages {
-  min-height: 120px;
-  max-height: 220px;
-  overflow: auto;
-  border: 1px solid #e7eee2;
-  border-radius: 14px;
-  background: #fbfef8;
-  padding: 10px;
+  min-height: 130px;
   display: grid;
+  align-content: start;
   gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #f7faf3;
 }
 
-.msg {
+.messages p {
+  width: fit-content;
+  max-width: 85%;
   margin: 0;
-  max-width: 90%;
   padding: 8px 10px;
   border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
 }
 
-.msg.bot {
-  background: #eef9e7;
-  color: #28503f;
+.messages .bot {
+  background: #eaf5e1;
 }
 
-.msg.user {
-  margin-left: auto;
-  background: #eaf3ff;
-  color: #24425f;
+.messages .user {
+  justify-self: end;
+  background: #e8f2fb;
 }
 
-.quick-qs {
+.suggestions {
   display: grid;
-  gap: 8px;
+  gap: 7px;
+  margin-top: 10px;
 }
 
-.q-chip {
+.suggestions button {
+  padding: 9px 11px;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
   background: #fff;
-  border-radius: 999px;
-  padding: 8px 12px;
+  color: #3d5648;
+  font-size: 12px;
+  font-weight: 750;
   text-align: left;
-  font-weight: 700;
-  color: #2f5447;
   cursor: pointer;
 }
 
-.q-chip:hover {
-  border-color: #b8d8af;
-  background: #f7fdf3;
-}
-
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .chatbot-wrap {
     right: 12px;
     bottom: 12px;
   }
 
-  .chat-panel {
-    width: min(92vw, 340px);
-  }
-
   .chat-fab {
-    width: 56px;
-    height: 56px;
-    padding: 0;
-    justify-content: center;
+    min-width: 62px;
+    min-height: 62px;
+    grid-template-columns: 1fr;
+    padding: 4px;
     border-radius: 50%;
   }
 
-  .fab-text {
+  .fab-copy,
+  .fab-arrow {
     display: none;
-  }
-
-  .fab-emoji {
-    width: 42px;
-    height: 42px;
   }
 }
 </style>

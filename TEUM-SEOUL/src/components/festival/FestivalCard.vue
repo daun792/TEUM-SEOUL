@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   festival: {
@@ -8,40 +9,40 @@ const props = defineProps({
   },
 })
 
+const router = useRouter()
 const bookmarked = ref(false)
 
-const toggleBookmark = () => {
-  bookmarked.value = !bookmarked.value
+const openFestival = () => {
+  router.push(`/festivals/${props.festival.id}`)
 }
 </script>
 
 <template>
-  <article class="festival-card section-card">
-    <div class="thumb-wrap">
-  <img
-    v-if="festival.imageUrl"
-    :src="festival.imageUrl"
-    :alt="festival.title"
-    class="thumb"
-  />
-  <div v-else class="thumb placeholder">이미지 준비중</div>
+  <article class="festival-card">
+    <button type="button" class="card-hit" :aria-label="`${festival.title} 상세 보기`" @click="openFestival"></button>
 
-  <span class="badge" :class="festival.status === '진행중' ? 'on' : 'soon'">
-    {{ festival.status }}
-  </span>
-</div>
+    <div class="thumb-wrap asset-placeholder">
+      <span class="badge" :class="festival.status === '진행중' ? 'on' : 'soon'">
+        {{ festival.status }}
+      </span>
+    </div>
 
     <div class="body">
-      <h4 class="title">{{ festival.title }}</h4>
-      <p class="meta">{{ festival.date }}</p>
-      <p class="meta">{{ festival.place }}</p>
+      <h4>{{ festival.title }}</h4>
+      <p>{{ festival.date }}</p>
+      <p>{{ festival.place }}</p>
 
       <div class="bottom">
         <span class="price-tag" :class="festival.priceType === '무료' ? 'free' : 'paid'">
           {{ festival.priceType }}
         </span>
-        <button type="button" class="bookmark-btn" @click="toggleBookmark">
-          {{ bookmarked ? '★' : '☆' }}
+        <button
+          type="button"
+          class="bookmark-btn"
+          :aria-label="bookmarked ? '북마크 해제' : '북마크 추가'"
+          @click.stop="bookmarked = !bookmarked"
+        >
+          {{ bookmarked ? '●' : '○' }}
         </button>
       </div>
     </div>
@@ -50,30 +51,49 @@ const toggleBookmark = () => {
 
 <style scoped>
 .festival-card {
+  position: relative;
+  min-width: 0;
   overflow: hidden;
-  min-width: 280px;
+  border: 1px solid #e3e5de;
+  border-radius: 16px;
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.festival-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(48, 70, 59, 0.1);
+}
+
+.card-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .thumb-wrap {
-  position: relative;
   height: 170px;
+  border: 0;
+  border-radius: 0;
 }
 
-.thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.thumb-wrap::after {
+  content: '축제 썸네일';
 }
 
 .badge {
   position: absolute;
+  z-index: 2;
   top: 10px;
   left: 10px;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
   color: #fff;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .badge.on {
@@ -85,63 +105,75 @@ const toggleBookmark = () => {
 }
 
 .body {
-  padding: 14px;
-  display: grid;
-  gap: 6px;
+  padding: 12px 12px 10px;
 }
 
-.title {
-  margin: 0;
-  font-size: 17px;
-  color: #244438;
-}
-
-.meta {
-  margin: 0;
-  color: #5e786e;
+h4 {
+  min-height: 42px;
+  margin: 0 0 8px;
+  color: #24372e;
   font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.03em;
+}
+
+p {
+  margin: 3px 0 0;
+  color: #69776f;
+  font-size: 11.5px;
 }
 
 .bottom {
-  margin-top: 6px;
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 10px;
 }
 
 .price-tag {
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-weight: 700;
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 850;
 }
 
 .price-tag.free {
-  background: #edfbe8;
-  color: #2f7c2f;
+  background: #ebf7dc;
+  color: #4b952c;
 }
 
 .price-tag.paid {
-  background: #fff1e6;
-  color: #b35915;
+  background: #fff0df;
+  color: #c3661d;
 }
 
 .bookmark-btn {
-  border: 1px solid var(--color-border);
-  background: #fff;
-  border-radius: 999px;
-  width: 36px;
-  height: 36px;
+  position: relative;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #758078;
   cursor: pointer;
   font-size: 18px;
 }
 
-.placeholder {
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #eef7ea 0%, #f8fbf1 100%);
-  color: #5f766d;
-  font-weight: 700;
-  font-size: 14px;
+@media (max-width: 1320px) {
+  .thumb-wrap {
+    height: 200px;
+  }
+}
+
+@media (max-width: 760px) {
+  .festival-card {
+    flex: 0 0 230px;
+  }
+
+  .thumb-wrap {
+    height: 160px;
+  }
 }
 </style>
