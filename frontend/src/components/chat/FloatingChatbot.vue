@@ -1,14 +1,43 @@
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import mascotImage from '../../assets/chatbot-mascot.webp'
+import { sendChatMessage } from '../../services/chatApi'
 
 const isOpen = ref(false)
+const isLoading = ref(false)
+const inputMessage = ref('')
+const messagesContainer = ref(null)
 const suggestions = ['이번 주말 축제', '무료 축제', '아이와 갈 만한 곳', '축제 주변 관광지']
 const messages = ref([{ role: 'bot', text: '안녕하세요. 서울 축제 도우미예요.' }])
 
-const askSuggestion = (question) => {
+const scrollToLatest = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+const submitMessage = async (presetMessage) => {
+  const question = (presetMessage || inputMessage.value).trim()
+  if (!question || isLoading.value) return
+
   messages.value.push({ role: 'user', text: question })
-  messages.value.push({ role: 'bot', text: '현재는 UI 미리보기 상태입니다.' })
+  inputMessage.value = ''
+  isLoading.value = true
+  await scrollToLatest()
+
+  try {
+    const answer = await sendChatMessage(question)
+    messages.value.push({ role: 'bot', text: answer })
+  } catch (error) {
+    messages.value.push({
+      role: 'bot',
+      text: error instanceof Error ? error.message : '챗봇 서버에 연결하지 못했습니다.',
+    })
+  } finally {
+    isLoading.value = false
+    await scrollToLatest()
+  }
 }
 </script>
 
@@ -24,21 +53,40 @@ const askSuggestion = (question) => {
         <button type="button" aria-label="챗봇 닫기" @click="isOpen = false">×</button>
       </header>
 
-      <div class="messages">
+      <div ref="messagesContainer" class="messages" aria-live="polite">
         <p v-for="(message, index) in messages" :key="index" :class="message.role">
           {{ message.text }}
         </p>
+        <p v-if="isLoading" class="bot loading-message">답변을 찾고 있어요…</p>
       </div>
 
       <div class="suggestions">
-        <button v-for="item in suggestions" :key="item" type="button" @click="askSuggestion(item)">
+        <button
+          v-for="item in suggestions"
+          :key="item"
+          type="button"
+          :disabled="isLoading"
+          @click="submitMessage(item)"
+        >
           {{ item }}
         </button>
       </div>
+
+      <form class="chat-input" @submit.prevent="submitMessage()">
+        <input
+          v-model="inputMessage"
+          type="text"
+          maxlength="300"
+          placeholder="서울 관광 정보를 물어보세요"
+          aria-label="챗봇 질문"
+          :disabled="isLoading"
+        />
+        <button type="submit" :disabled="isLoading || !inputMessage.trim()">전송</button>
+      </form>
     </section>
 
     <button v-else type="button" class="chat-fab" aria-label="챗봇 열기" @click="isOpen = true">
-      <img :src="mascotImage" alt="서울 축제 도우미" class="fab-avatar" aria-hidden="true" />
+      <img :src="mascotImage" alt="" class="fab-avatar" aria-hidden="true" />
       <span class="fab-copy">
         <strong>서울 축제 도우미</strong>
         <small>어디로 떠나볼까요?</small>
@@ -74,18 +122,12 @@ const askSuggestion = (question) => {
 .fab-avatar,
 .bot-avatar {
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .fab-avatar {
   width: 54px;
   height: 54px;
-}
-
-.fab-avatar::after,
-.bot-avatar::after {
-  content: '캐릭터';
-  padding: 3px 5px;
-  font-size: 7px;
 }
 
 .fab-copy {
@@ -115,7 +157,7 @@ const askSuggestion = (question) => {
 }
 
 .chat-panel {
-  width: min(360px, calc(100vw - 28px));
+  width: min(380px, calc(100vw - 28px));
   padding: 14px;
   border-radius: 20px;
 }
@@ -156,23 +198,27 @@ const askSuggestion = (question) => {
 }
 
 .messages {
-  min-height: 130px;
+  min-height: 150px;
+  max-height: 300px;
   display: grid;
   align-content: start;
   gap: 8px;
   margin-top: 12px;
   padding: 10px;
+  overflow-y: auto;
   border-radius: 14px;
   background: #f7faf3;
 }
 
 .messages p {
   width: fit-content;
-  max-width: 85%;
+  max-width: 88%;
   margin: 0;
   padding: 8px 10px;
   border-radius: 12px;
   font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-line;
 }
 
 .messages .bot {
@@ -184,8 +230,13 @@ const askSuggestion = (question) => {
   background: #e8f2fb;
 }
 
+.loading-message {
+  opacity: 0.72;
+}
+
 .suggestions {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   margin-top: 10px;
 }
@@ -199,6 +250,42 @@ const askSuggestion = (question) => {
   font-size: 12px;
   font-weight: 750;
   text-align: left;
+  cursor: pointer;
+}
+
+.suggestions button:disabled,
+.chat-input button:disabled,
+.chat-input input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.chat-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-input input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: #263a2f;
+  font: inherit;
+  font-size: 12px;
+}
+
+.chat-input button {
+  padding: 0 15px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-dark);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
   cursor: pointer;
 }
 
@@ -219,6 +306,10 @@ const askSuggestion = (question) => {
   .fab-copy,
   .fab-arrow {
     display: none;
+  }
+
+  .suggestions {
+    grid-template-columns: 1fr;
   }
 }
 </style>
