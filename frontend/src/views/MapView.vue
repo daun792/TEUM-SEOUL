@@ -60,6 +60,14 @@ const renderMarkers = () => {
   markers = filteredPlaces.value.map((place) =>
     L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`),
   )
+
+  requestAnimationFrame(() => {
+    map?.invalidateSize()
+    if (markers.length > 1) {
+      const group = L.featureGroup(markers)
+      map?.fitBounds(group.getBounds(), { padding: [20, 20] })
+    }
+  })
 }
 
 onMounted(async () => {
@@ -70,6 +78,10 @@ onMounted(async () => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
+
+  requestAnimationFrame(() => {
+    map?.invalidateSize()
+  })
 
   await loadPlaces()
   renderMarkers()

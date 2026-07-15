@@ -40,8 +40,10 @@ export function getFestivalTags(festival) {
   const end = parseDate(festival.end || festival.start)
   const title = String(festival.title || '')
 
-  if (start && end && start <= now && now <= end) {
-    tags.add('오늘')
+  tags.add('전체')
+
+  if (start && start > now) {
+    tags.add('다가오는 축제')
   }
 
   if (start && end) {
@@ -56,10 +58,6 @@ export function getFestivalTags(festival) {
   if (/전시|아트|미술/.test(title)) tags.add('전시')
   if (/전통|한옥|궁|민속/.test(title)) tags.add('전통')
   if (/야외|한강|공원|광장/.test(title)) tags.add('야외 행사')
-
-  if (!tags.size) {
-    tags.add('오늘')
-  }
 
   return [...tags]
 }

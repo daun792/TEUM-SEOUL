@@ -9,7 +9,7 @@ import { getFestivalStatus, getFestivalTags } from '../../utils/festivalTags'
 const props = defineProps({
   selectedCategory: {
     type: String,
-    default: '오늘',
+    default: '전체',
   },
 })
 
@@ -55,7 +55,6 @@ const filteredFestivals = computed(() =>
 
 <style scoped>
 .weekly {
-  height: 100%;
   padding: 16px;
   border-radius: 18px;
 }

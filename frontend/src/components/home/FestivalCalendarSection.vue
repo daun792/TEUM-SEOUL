@@ -13,7 +13,7 @@ const router = useRouter()
 const props = defineProps({
   selectedCategory: {
     type: String,
-    default: '오늘',
+    default: '전체',
   },
 })
 
@@ -90,7 +90,6 @@ const calendarOptions = computed(() => ({
 
 <style scoped>
 .calendar-section {
-  height: 100%;
   padding: 16px;
   border-radius: 18px;
 }

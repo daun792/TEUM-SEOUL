@@ -105,13 +105,13 @@ const submitMessage = async (presetMessage) => {
 }
 
 .chat-fab {
-  min-width: 310px;
-  min-height: 74px;
+  min-width: 380px;
+  min-height: 94px;
   display: grid;
-  grid-template-columns: 56px 1fr 32px;
+  grid-template-columns: 72px 1fr 36px;
   align-items: center;
-  gap: 10px;
-  padding: 8px 11px;
+  gap: 12px;
+  padding: 10px 14px;
   border: 1px solid #9dcc83;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.96);
@@ -126,8 +126,8 @@ const submitMessage = async (presetMessage) => {
 }
 
 .fab-avatar {
-  width: 54px;
-  height: 54px;
+  width: 70px;
+  height: 70px;
 }
 
 .fab-copy {
@@ -138,17 +138,17 @@ const submitMessage = async (presetMessage) => {
 
 .fab-copy strong {
   color: var(--color-primary-dark);
-  font-size: 15px;
+  font-size: 18px;
 }
 
 .fab-copy small {
   color: #6c7a72;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .fab-arrow {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -157,8 +157,8 @@ const submitMessage = async (presetMessage) => {
 }
 
 .chat-panel {
-  width: min(380px, calc(100vw - 28px));
-  padding: 14px;
+  width: min(460px, calc(100vw - 24px));
+  padding: 18px;
   border-radius: 20px;
 }
 
@@ -198,8 +198,8 @@ const submitMessage = async (presetMessage) => {
 }
 
 .messages {
-  min-height: 150px;
-  max-height: 300px;
+  min-height: 230px;
+  max-height: 420px;
   display: grid;
   align-content: start;
   gap: 8px;
@@ -216,7 +216,7 @@ const submitMessage = async (presetMessage) => {
   margin: 0;
   padding: 8px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.55;
   white-space: pre-line;
 }
@@ -242,12 +242,12 @@ const submitMessage = async (presetMessage) => {
 }
 
 .suggestions button {
-  padding: 9px 11px;
+  padding: 11px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: #fff;
   color: #3d5648;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   text-align: left;
   cursor: pointer;
@@ -275,16 +275,16 @@ const submitMessage = async (presetMessage) => {
   background: #fff;
   color: #263a2f;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .chat-input button {
-  padding: 0 15px;
+  padding: 0 18px;
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-primary-dark);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
 }

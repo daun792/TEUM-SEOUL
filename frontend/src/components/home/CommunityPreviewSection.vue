@@ -46,7 +46,6 @@ onMounted(async () => {
 
 <style scoped>
 .community-section {
-  height: 100%;
   display: flex;
   flex-direction: column;
   padding: 16px;

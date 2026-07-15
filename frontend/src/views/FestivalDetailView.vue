@@ -47,6 +47,9 @@ function renderMap() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map)
+    requestAnimationFrame(() => {
+      map?.invalidateSize()
+    })
   } else {
     map.setView([lat, lng], 15)
   }
@@ -89,6 +92,8 @@ const loadFestival = async () => {
   errorMessage.value = ''
   try {
     festival.value = await getFestivalById(route.params.id)
+    await nextTick()
+    renderMap()
     await loadNearbyPlaces()
     await nextTick()
     renderMap()

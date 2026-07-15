@@ -11,15 +11,15 @@ import iconOutdoor from '../../assets/icons/icon-outdoor.svg'
 const props = defineProps({
   modelValue: {
     type: String,
-    default: '오늘',
+    default: '전체',
   },
 })
 
 const emit = defineEmits(['update:modelValue'])
 
 const categories = [
-  { label: '오늘', icon: iconToday },
-  { label: '이번 주말', icon: iconWeekend },
+  { label: '전체', icon: iconToday },
+  { label: '다가오는 축제', icon: iconWeekend },
   { label: '무료 축제', icon: iconFree },
   { label: '공연', icon: iconPerformance },
   { label: '전시', icon: iconExhibition },

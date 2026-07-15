@@ -8,7 +8,7 @@ import MapPreviewSection from '../components/home/MapPreviewSection.vue'
 import CommunityPreviewSection from '../components/home/CommunityPreviewSection.vue'
 import HomeDecoration from '../components/home/HomeDecoration.vue'
 
-const activeCategory = ref('오늘')
+const activeCategory = ref('전체')
 </script>
 
 <template>
@@ -52,7 +52,7 @@ const activeCategory = ref('오늘')
   grid-template-columns: minmax(470px, 1.65fr) minmax(280px, 0.92fr) minmax(350px, 1.18fr) minmax(280px, 0.92fr);
   gap: 14px;
   margin-top: 14px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .dashboard > * {

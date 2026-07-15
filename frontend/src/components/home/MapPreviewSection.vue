@@ -18,7 +18,7 @@ L.Icon.Default.mergeOptions({
 const props = defineProps({
   selectedCategory: {
     type: String,
-    default: '오늘',
+    default: '전체',
   },
 })
 
@@ -29,8 +29,8 @@ const allPlaces = ref([])
 const filteredPlaces = computed(() => allPlaces.value)
 
 const categoryToMapFilter = {
-  오늘: '축제',
-  '이번 주말': '축제',
+  전체: '전체',
+  '다가오는 축제': '축제',
   '무료 축제': '축제',
   공연: '축제',
   전시: '전체',
@@ -66,6 +66,10 @@ const renderMarkers = () => {
   markers = filteredPlaces.value.map((place) =>
     L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`),
   )
+
+  requestAnimationFrame(() => {
+    map?.invalidateSize()
+  })
 }
 
 onMounted(async () => {
@@ -76,6 +80,9 @@ onMounted(async () => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
+  requestAnimationFrame(() => {
+    map?.invalidateSize()
+  })
   await loadPlaces()
   renderMarkers()
 })
@@ -89,7 +96,7 @@ watch(selectedFilter, async () => {
 watch(
   () => props.selectedCategory,
   (category) => {
-    selectedFilter.value = categoryToMapFilter[category] || '축제'
+    selectedFilter.value = categoryToMapFilter[category] || '전체'
   },
   { immediate: true },
 )
@@ -128,7 +135,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .map-section {
-  height: 100%;
   padding: 16px;
   border-radius: 18px;
 }
