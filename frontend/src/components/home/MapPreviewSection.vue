@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { getPlaces } from '../../services/placesApi'
+import { MAP_FILTERS, placeTypeLabel, toApiCategory } from '../../utils/placeFilters'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -22,31 +24,9 @@ const props = defineProps({
 
 const mapRef = ref(null)
 const selectedFilter = ref('축제')
-const filters = ['축제', '관광지', '문화시설', '쇼핑', '반경 2km']
-
-const allPlaces = [
-  { id: 1, type: '축제', name: '한강 여름 음악축제', lat: 37.5288, lng: 126.9326 },
-  { id: 2, type: '축제', name: '서울숲 피크닉 페스티벌', lat: 37.5444, lng: 127.0374 },
-  { id: 3, type: '관광지', name: '남산서울타워', lat: 37.5512, lng: 126.9882 },
-  { id: 4, type: '문화시설', name: 'DDP', lat: 37.5663, lng: 127.0092 },
-  { id: 5, type: '쇼핑', name: '명동 거리', lat: 37.5637, lng: 126.9834 },
-  { id: 6, type: '체험', name: '북촌 공예 체험관', lat: 37.5826, lng: 126.9832 },
-]
-
-const isInRadius2Km = (place) => {
-  const center = { lat: 37.5665, lng: 126.978 }
-  const dLat = place.lat - center.lat
-  const dLng = place.lng - center.lng
-  const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111
-  return approxKm <= 2
-}
-
-const filteredPlaces = computed(() => {
-  if (selectedFilter.value === '반경 2km') {
-    return allPlaces.filter((place) => isInRadius2Km(place))
-  }
-  return allPlaces.filter((place) => place.type === selectedFilter.value)
-})
+const filters = MAP_FILTERS
+const allPlaces = ref([])
+const filteredPlaces = computed(() => allPlaces.value)
 
 const categoryToMapFilter = {
   오늘: '축제',
@@ -58,6 +38,25 @@ const categoryToMapFilter = {
   '야외 행사': '축제',
 }
 
+const loadPlaces = async () => {
+  try {
+    const params = { page: 1, size: 200 }
+    if (selectedFilter.value === '반경 2km') {
+      params.lat = 37.5665
+      params.lng = 126.978
+      params.radiusKm = 2
+    } else {
+      const apiCategory = toApiCategory(selectedFilter.value)
+      if (apiCategory) params.category = apiCategory
+    }
+
+    const page = await getPlaces(params)
+    allPlaces.value = page.items.filter((place) => typeof place.lat === 'number' && typeof place.lng === 'number')
+  } catch {
+    allPlaces.value = []
+  }
+}
+
 let map
 let markers = []
 
@@ -65,7 +64,7 @@ const renderMarkers = () => {
   if (!map) return
   markers.forEach((marker) => marker.remove())
   markers = filteredPlaces.value.map((place) =>
-    L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${place.type}`),
+    L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`),
   )
 }
 
@@ -77,10 +76,15 @@ onMounted(async () => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
+  await loadPlaces()
   renderMarkers()
 })
 
 watch(filteredPlaces, renderMarkers)
+watch(selectedFilter, async () => {
+  await loadPlaces()
+  renderMarkers()
+})
 
 watch(
   () => props.selectedCategory,

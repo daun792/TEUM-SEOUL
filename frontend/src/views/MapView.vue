@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { getPlaces } from '../services/placesApi'
+import { MAP_FILTERS, placeTypeLabel, toApiCategory } from '../utils/placeFilters'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -14,32 +16,39 @@ L.Icon.Default.mergeOptions({
 
 const mapRef = ref(null)
 const selectedFilter = ref('축제')
-const filters = ['축제', '관광지', '문화시설', '쇼핑', '체험', '반경 2km']
-
-const places = [
-  { id: 'f1', type: '축제', name: '한강 여름 음악축제', lat: 37.5288, lng: 126.9326 },
-  { id: 'f2', type: '축제', name: '서울숲 피크닉 페스티벌', lat: 37.5444, lng: 127.0374 },
-  { id: 't1', type: '관광지', name: '남산서울타워', lat: 37.5512, lng: 126.9882 },
-  { id: 't2', type: '관광지', name: '경복궁', lat: 37.5796, lng: 126.977 },
-  { id: 'c1', type: '문화시설', name: 'DDP', lat: 37.5663, lng: 127.0092 },
-  { id: 's1', type: '쇼핑', name: '명동 거리', lat: 37.5637, lng: 126.9834 },
-  { id: 'e1', type: '체험', name: '북촌 공예 체험관', lat: 37.5826, lng: 126.9832 },
-]
-
-const isInRadius2Km = (place) => {
-  const center = { lat: 37.5665, lng: 126.978 }
-  const dLat = place.lat - center.lat
-  const dLng = place.lng - center.lng
-  const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111
-  return approxKm <= 2
-}
+const filters = MAP_FILTERS
+const places = ref([])
+const loading = ref(false)
+const errorMessage = ref('')
 
 const filteredPlaces = computed(() => {
-  if (selectedFilter.value === '반경 2km') {
-    return places.filter((place) => isInRadius2Km(place))
-  }
-  return places.filter((place) => place.type === selectedFilter.value)
+  return places.value
 })
+
+const loadPlaces = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const params = { page: 1, size: 200 }
+    if (selectedFilter.value === '반경 2km') {
+      params.lat = 37.5665
+      params.lng = 126.978
+      params.radiusKm = 2
+    } else {
+      const apiCategory = toApiCategory(selectedFilter.value)
+      if (apiCategory) params.category = apiCategory
+    }
+
+    const page = await getPlaces(params)
+    places.value = page.items.filter((place) => typeof place.lat === 'number' && typeof place.lng === 'number')
+  } catch (error) {
+    places.value = []
+    errorMessage.value = error instanceof Error ? error.message : '장소 데이터를 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
+}
 
 let map = null
 let markers = []
@@ -49,7 +58,7 @@ const renderMarkers = () => {
 
   markers.forEach((marker) => marker.remove())
   markers = filteredPlaces.value.map((place) =>
-    L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${place.type}`),
+    L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`),
   )
 }
 
@@ -62,10 +71,15 @@ onMounted(async () => {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
+  await loadPlaces()
   renderMarkers()
 })
 
 watch(filteredPlaces, renderMarkers)
+watch(selectedFilter, async () => {
+  await loadPlaces()
+  renderMarkers()
+})
 
 onBeforeUnmount(() => {
   map?.remove()
@@ -88,9 +102,11 @@ onBeforeUnmount(() => {
         <ul>
           <li v-for="place in filteredPlaces" :key="place.id">
             <strong>{{ place.name }}</strong>
-            <span>{{ place.type }}</span>
+            <span>{{ placeTypeLabel(place) }}</span>
           </li>
         </ul>
+        <p v-if="loading" class="state-text">장소 데이터를 불러오는 중입니다...</p>
+        <p v-if="errorMessage" class="state-text error">{{ errorMessage }}</p>
       </aside>
     </section>
 
@@ -179,6 +195,17 @@ onBeforeUnmount(() => {
 .side-panel span {
   color: #667a71;
   font-size: 12px;
+}
+
+.state-text {
+  margin: 10px 0 0;
+  color: #60756b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.state-text.error {
+  color: #b23b3b;
 }
 
 .filters {

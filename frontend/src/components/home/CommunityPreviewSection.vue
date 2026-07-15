@@ -1,14 +1,26 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import mascotImage from '../../assets/chatbot-mascot.webp'
+import { getPostList } from '../../services/postsApi'
 
 const router = useRouter()
+const previewPosts = ref([])
 
-const previewPosts = [
-  { id: '1', title: '이번 주말 여의도 축제 사람 많을까요?', timeAgo: '12분 전', comments: 8, avatar: 'A' },
-  { id: '2', title: '성수 근처 무료 전시 추천해요!', timeAgo: '1시간 전', comments: 3, avatar: 'B' },
-  { id: '3', title: '아이와 함께 가기 좋은 체험 축제 있을까요?', timeAgo: '2시간 전', comments: 5, avatar: 'C' },
-]
+onMounted(async () => {
+  try {
+    const result = await getPostList({ page: 1, size: 3 })
+    previewPosts.value = result.items.map((item, index) => ({
+      id: item.id,
+      title: item.title,
+      timeAgo: item.createdAt,
+      comments: 0,
+      avatar: String.fromCharCode(65 + index),
+    }))
+  } catch {
+    previewPosts.value = []
+  }
+})
 </script>
 
 <template>
@@ -28,6 +40,7 @@ const previewPosts = [
           </span>
         </button>
       </li>
+      <li v-if="!previewPosts.length" class="empty-item">아직 등록된 게시글이 없습니다.</li>
     </ul>
 
     <div class="helper-card">
@@ -81,6 +94,13 @@ h2 {
 
 .post-list li + li {
   border-top: 1px solid #ecece6;
+}
+
+.empty-item {
+  padding: 16px 12px;
+  color: #788780;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .post-button {

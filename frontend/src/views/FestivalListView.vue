@@ -1,12 +1,20 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getFestivalList } from '../mocks/festivals'
+import { getFestivalList } from '../services/festivalsApi'
 
 const festivals = ref([])
+const loading = ref(true)
+const errorMessage = ref('')
 
 onMounted(async () => {
-  festivals.value = await getFestivalList()
+  try {
+    festivals.value = await getFestivalList({ page: 1, size: 60 })
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '축제 데이터를 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -17,7 +25,10 @@ onMounted(async () => {
       <p>서울의 축제를 확인하고 상세 정보로 이동해보세요.</p>
     </header>
 
-    <section class="grid" aria-label="축제 목록">
+    <section v-if="loading" class="empty-box">축제 데이터를 불러오는 중입니다...</section>
+    <section v-else-if="errorMessage" class="empty-box">{{ errorMessage }}</section>
+    <section v-else-if="!festivals.length" class="empty-box">표시할 축제 데이터가 없습니다.</section>
+    <section v-else class="grid" aria-label="축제 목록">
       <RouterLink
         v-for="festival in festivals"
         :key="festival.id"
@@ -64,6 +75,17 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+.empty-box {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #d5ddd0;
+  border-radius: 14px;
+  color: #64786d;
+  font-weight: 700;
+  background: #fbfdf8;
 }
 
 .festival-item {

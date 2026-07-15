@@ -1,13 +1,22 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getPostList } from '../mocks/posts'
+import { getPostList } from '../services/postsApi'
 
 const router = useRouter()
 const posts = ref([])
+const loading = ref(true)
+const errorMessage = ref('')
 
 onMounted(async () => {
-  posts.value = await getPostList()
+  try {
+    const page = await getPostList({ page: 1, size: 50 })
+    posts.value = page.items
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '게시글을 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
 })
 
 const goDetail = (id) => {
@@ -26,7 +35,7 @@ const goWrite = () => {
       <button type="button" class="write-btn" @click="goWrite">글쓰기</button>
     </header>
 
-    <ul class="post-list section-card">
+    <ul v-if="!loading && !errorMessage && posts.length" class="post-list section-card">
       <li
         v-for="post in posts"
         :key="post.id"
@@ -40,6 +49,10 @@ const goWrite = () => {
         </div>
       </li>
     </ul>
+
+    <section v-else class="section-card state-box">
+      {{ loading ? '게시글을 불러오는 중입니다...' : (errorMessage || '작성된 게시글이 없습니다.') }}
+    </section>
   </main>
 </template>
 
@@ -76,6 +89,14 @@ h2 {
   list-style: none;
   padding: 8px;
   margin: 0;
+}
+
+.state-box {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  color: #60746a;
+  font-weight: 700;
 }
 
 .post-item {

@@ -1,9 +1,4 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:8000'
-
-export function resolveApiBaseUrl() {
-  const configured = import.meta.env?.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
-  return configured.replace(/\/$/, '')
-}
+import { resolveApiBaseUrl } from './apiBase'
 
 export async function sendChatMessage(message, options = {}) {
   const cleanedMessage = message.trim()

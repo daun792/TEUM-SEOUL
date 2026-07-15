@@ -1,35 +1,67 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { posts } from '../mocks/posts'
+import { createPost, getPostById, updatePost } from '../services/postsApi'
 
 const route = useRoute()
 const router = useRouter()
 
 const isEditMode = computed(() => Boolean(route.params.id))
-const targetPost = computed(() =>
-  posts.find((item) => item.id === String(route.params.id))
-)
+const loading = ref(false)
+const submitting = ref(false)
+const errorMessage = ref('')
 
 const form = ref({
   title: '',
   content: '',
+  author: '익명',
+  password: '',
 })
 
-onMounted(() => {
-  if (isEditMode.value && targetPost.value) {
-    form.value.title = targetPost.value.title
-    form.value.content = targetPost.value.content
-  }
-})
-
-const submitForm = () => {
+onMounted(async () => {
   if (isEditMode.value) {
-    alert('수정 완료(더미)')
-  } else {
-    alert('작성 완료(더미)')
+    loading.value = true
+    errorMessage.value = ''
+    try {
+      const post = await getPostById(route.params.id)
+      form.value.title = post.title
+      form.value.content = post.content
+      form.value.author = post.author
+    } catch (error) {
+      errorMessage.value = error instanceof Error ? error.message : '게시글 정보를 불러오지 못했습니다.'
+    } finally {
+      loading.value = false
+    }
   }
-  router.push('/board')
+})
+
+const submitForm = async () => {
+  submitting.value = true
+  errorMessage.value = ''
+
+  try {
+    if (isEditMode.value) {
+      await updatePost(route.params.id, {
+        title: form.value.title,
+        content: form.value.content,
+        password: form.value.password,
+      })
+      window.alert('수정이 완료되었습니다.')
+    } else {
+      await createPost({
+        title: form.value.title,
+        content: form.value.content,
+        author: form.value.author || '익명',
+        password: form.value.password,
+      })
+      window.alert('작성이 완료되었습니다.')
+    }
+    router.push('/board')
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '저장에 실패했습니다.'
+  } finally {
+    submitting.value = false
+  }
 }
 
 const cancel = () => {
@@ -42,10 +74,18 @@ const cancel = () => {
     <section class="section-card write-card">
       <h2>{{ isEditMode ? '게시글 수정' : '게시글 작성' }}</h2>
 
+      <p v-if="loading" class="state-text">게시글 정보를 불러오는 중입니다...</p>
+      <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
+
       <form class="form" @submit.prevent="submitForm">
         <label>
           제목
           <input v-model="form.title" type="text" placeholder="제목을 입력하세요" required />
+        </label>
+
+        <label v-if="!isEditMode">
+          작성자
+          <input v-model="form.author" type="text" placeholder="작성자 이름" maxlength="50" required />
         </label>
 
         <label>
@@ -53,8 +93,21 @@ const cancel = () => {
           <textarea v-model="form.content" rows="10" placeholder="내용을 입력하세요" required />
         </label>
 
+        <label>
+          비밀번호
+          <input
+            v-model="form.password"
+            type="password"
+            placeholder="비밀번호 4자리 이상"
+            minlength="4"
+            required
+          />
+        </label>
+
         <div class="actions">
-          <button type="submit" class="submit">{{ isEditMode ? '수정하기' : '등록하기' }}</button>
+          <button type="submit" class="submit" :disabled="loading || submitting">
+            {{ submitting ? '저장 중...' : (isEditMode ? '수정하기' : '등록하기') }}
+          </button>
           <button type="button" class="ghost" @click="cancel">취소</button>
         </div>
       </form>
@@ -109,6 +162,18 @@ textarea:focus {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+.state-text {
+  margin: 0 0 10px;
+  color: #5f7268;
+  font-weight: 700;
+}
+
+.error-text {
+  margin: 0 0 10px;
+  color: #b23b3b;
+  font-weight: 700;
 }
 
 button {

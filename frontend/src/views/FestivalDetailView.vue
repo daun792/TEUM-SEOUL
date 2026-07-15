@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { getFestivalById } from '../mocks/festivals'
+import { getFestivalById } from '../services/festivalsApi'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -17,6 +17,8 @@ L.Icon.Default.mergeOptions({
 const route = useRoute()
 const mapEl = ref(null)
 const festival = ref(null)
+const loading = ref(true)
+const errorMessage = ref('')
 
 let map = null
 let marker = null
@@ -25,6 +27,7 @@ function renderMap() {
   if (!festival.value || !mapEl.value) return
 
   const { lat, lng, name } = festival.value
+  if (typeof lat !== 'number' || typeof lng !== 'number') return
 
   if (!map) {
     map = L.map(mapEl.value).setView([lat, lng], 15)
@@ -40,9 +43,18 @@ function renderMap() {
 }
 
 const loadFestival = async () => {
-  festival.value = await getFestivalById(route.params.id)
-  await nextTick()
-  renderMap()
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    festival.value = await getFestivalById(route.params.id)
+    await nextTick()
+    renderMap()
+  } catch (error) {
+    festival.value = null
+    errorMessage.value = error instanceof Error ? error.message : '축제 정보를 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -66,7 +78,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main v-if="festival" class="container detail-page">
+  <main v-if="loading" class="container detail-page">
+    <section class="section-card detail-card">
+      <h2>축제 정보를 불러오는 중입니다.</h2>
+    </section>
+  </main>
+
+  <main v-else-if="festival" class="container detail-page">
     <section class="section-card detail-card">
       <header class="head">
         <h2>{{ festival.name }}</h2>
@@ -86,13 +104,14 @@ onBeforeUnmount(() => {
       <p class="description">{{ festival.description }}</p>
 
       <h3>축제 위치</h3>
-      <div ref="mapEl" class="map"></div>
+      <div v-if="typeof festival.lat === 'number' && typeof festival.lng === 'number'" ref="mapEl" class="map"></div>
+      <p v-else class="map-empty">위치 좌표가 없어 지도를 표시할 수 없습니다.</p>
     </section>
   </main>
 
   <main v-else class="container detail-page">
     <section class="section-card detail-card">
-      <h2>축제를 찾을 수 없습니다.</h2>
+      <h2>{{ errorMessage || '축제를 찾을 수 없습니다.' }}</h2>
       <RouterLink to="/festivals" class="back-link">목록으로</RouterLink>
     </section>
   </main>
@@ -197,6 +216,15 @@ h3 {
   height: 360px;
   border: 1px solid #e1e7dc;
   border-radius: 14px;
+}
+
+.map-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed #d4ded0;
+  border-radius: 12px;
+  color: #5f7468;
+  background: #f9fcf6;
 }
 
 @media (max-width: 760px) {

@@ -1,24 +1,60 @@
 <script setup>
-import { computed } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { posts } from '../mocks/posts'
+import { deletePost, getPostById } from '../services/postsApi'
 
 const route = useRoute()
 const router = useRouter()
+const post = ref(null)
+const loading = ref(true)
+const errorMessage = ref('')
 
-const post = computed(() =>
-  posts.find((item) => item.id === String(route.params.id))
-)
+const loadPost = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    post.value = await getPostById(route.params.id)
+  } catch (error) {
+    post.value = null
+    errorMessage.value = error instanceof Error ? error.message : '게시글을 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
+}
 
 const goList = () => router.push('/board')
 const goEdit = () => router.push('/board/edit/' + route.params.id)
-const removePost = () => {
-  alert('더미 화면입니다. 삭제 API 연결 시 실제 삭제됩니다.')
+const removePost = async () => {
+  const password = window.prompt('삭제 비밀번호를 입력해 주세요.')
+  if (!password) return
+
+  try {
+    await deletePost(route.params.id, password)
+    window.alert('게시글이 삭제되었습니다.')
+    router.push('/board')
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '게시글 삭제에 실패했습니다.')
+  }
 }
+
+onMounted(loadPost)
+
+watch(
+  () => route.params.id,
+  () => {
+    loadPost()
+  }
+)
 </script>
 
 <template>
-  <main v-if="post" class="container detail-page">
+  <main v-if="loading" class="container detail-page">
+    <section class="section-card detail-card">
+      <h2>게시글을 불러오는 중입니다.</h2>
+    </section>
+  </main>
+
+  <main v-else-if="post" class="container detail-page">
     <section class="section-card detail-card">
       <h2>{{ post.title }}</h2>
       <p class="meta">{{ post.author }} | {{ post.createdAt }}</p>
@@ -34,7 +70,7 @@ const removePost = () => {
 
   <main v-else class="container detail-page">
     <section class="section-card detail-card missing">
-      <h2>게시글을 찾을 수 없습니다.</h2>
+      <h2>{{ errorMessage || '게시글을 찾을 수 없습니다.' }}</h2>
       <button type="button" class="ghost" @click="goList">목록으로</button>
     </section>
   </main>

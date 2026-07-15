@@ -1,7 +1,10 @@
 <script setup>
 import { computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import FestivalCard from '../festival/FestivalCard.vue'
+import { getFestivalList } from '../../services/festivalsApi'
+import { getFestivalStatus, getFestivalTags } from '../../utils/festivalTags'
 
 const props = defineProps({
   selectedCategory: {
@@ -10,38 +13,27 @@ const props = defineProps({
   },
 })
 
-const weeklyFestivals = [
-  {
-    id: '1',
-    title: '한강 여름 음악축제',
-    date: '7.12(금) - 7.14(일)',
-    place: '여의도 한강공원',
-    status: '진행중',
-    priceType: '무료',
-    tags: ['오늘', '이번 주말', '무료 축제', '공연', '야외 행사'],
-  },
-  {
-    id: '2',
-    title: '서울숲 피크닉 페스티벌',
-    date: '7.13(토) - 7.15(월)',
-    place: '서울숲 공원',
-    status: '진행중',
-    priceType: '무료',
-    tags: ['오늘', '이번 주말', '무료 축제', '야외 행사'],
-  },
-  {
-    id: '3',
-    title: '북촌 한옥 야행',
-    date: '7.19(금) - 7.21(일)',
-    place: '북촌 한옥마을',
-    status: '예정',
-    priceType: '유료',
-    tags: ['전통'],
-  },
-]
+const weeklyFestivals = ref([])
+
+onMounted(async () => {
+  try {
+    const festivals = await getFestivalList({ page: 1, size: 18 })
+    weeklyFestivals.value = festivals.map((festival) => ({
+      id: festival.id,
+      title: festival.title,
+      date: festival.period,
+      place: festival.place,
+      status: getFestivalStatus(festival),
+      priceType: /무료/.test(festival.title) ? '무료' : '유료',
+      tags: getFestivalTags(festival),
+    }))
+  } catch {
+    weeklyFestivals.value = []
+  }
+})
 
 const filteredFestivals = computed(() =>
-  weeklyFestivals.filter((festival) => festival.tags.includes(props.selectedCategory)),
+  weeklyFestivals.value.filter((festival) => festival.tags.includes(props.selectedCategory)),
 )
 </script>
 
