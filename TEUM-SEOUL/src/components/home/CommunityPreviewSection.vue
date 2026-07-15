@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import mascotImage from '../../assets/chatbot-mascot.webp'
 
 const router = useRouter()
 
@@ -34,7 +35,7 @@ const previewPosts = [
         <strong>서울 축제 도우미</strong>
         <span>어디로 떠나볼까요?</span>
       </div>
-      <div class="mascot-placeholder asset-placeholder" aria-label="챗봇 캐릭터 이미지 자리"></div>
+      <img :src="mascotImage" alt="서울 축제 도우미" class="bot-avatar" />
     </div>
   </section>
 </template>

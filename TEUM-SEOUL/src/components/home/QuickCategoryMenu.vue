@@ -1,5 +1,12 @@
 <script setup>
 import { computed } from 'vue'
+import iconToday from '../../assets/icons/icon-today.svg'
+import iconWeekend from '../../assets/icons/icon-weekend.svg'
+import iconFree from '../../assets/icons/icon-free.svg'
+import iconPerformance from '../../assets/icons/icon-performance.svg'
+import iconExhibition from '../../assets/icons/icon-exhibition.svg'
+import iconTradition from '../../assets/icons/icon-tradition.svg'
+import iconOutdoor from '../../assets/icons/icon-outdoor.svg'
 
 const props = defineProps({
   modelValue: {
@@ -11,13 +18,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const categories = [
-  { label: '오늘', icon: '01' },
-  { label: '이번 주말', icon: '02' },
-  { label: '무료 축제', icon: '03' },
-  { label: '공연', icon: '04' },
-  { label: '전시', icon: '05' },
-  { label: '전통', icon: '06' },
-  { label: '야외 행사', icon: '07' },
+  { label: '오늘', icon: iconToday },
+  { label: '이번 주말', icon: iconWeekend },
+  { label: '무료 축제', icon: iconFree },
+  { label: '공연', icon: iconPerformance },
+  { label: '전시', icon: iconExhibition },
+  { label: '전통', icon: iconTradition },
+  { label: '야외 행사', icon: iconOutdoor },
 ]
 
 const activeCategory = computed({
@@ -38,7 +45,7 @@ const activeCategory = computed({
         :aria-selected="activeCategory === item.label"
         @click="activeCategory = item.label"
       >
-        <span class="icon-placeholder" aria-hidden="true">{{ item.icon }}</span>
+        <img :src="item.icon" alt="" class="category-icon" aria-hidden="true" />
         <span>{{ item.label }}</span>
       </button>
     </div>
@@ -132,5 +139,11 @@ const activeCategory = computed({
     gap: 7px;
     font-size: 12px;
   }
+
+  .category-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+}
 }
 </style>

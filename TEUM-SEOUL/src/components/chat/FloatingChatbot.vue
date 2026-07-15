@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import mascotImage from '../../assets/chatbot-mascot.webp'
 
 const isOpen = ref(false)
 const suggestions = ['이번 주말 축제', '무료 축제', '아이와 갈 만한 곳', '축제 주변 관광지']
@@ -15,7 +16,7 @@ const askSuggestion = (question) => {
   <div class="chatbot-wrap">
     <section v-if="isOpen" class="chat-panel section-card" aria-label="서울 축제 도우미">
       <header>
-        <div class="bot-avatar asset-placeholder" aria-label="챗봇 캐릭터 이미지 자리"></div>
+        <img :src="mascotImage" alt="서울 축제 도우미" class="bot-avatar" />
         <div>
           <strong>서울 축제 도우미</strong>
           <span>무엇을 찾고 있나요?</span>
@@ -37,7 +38,7 @@ const askSuggestion = (question) => {
     </section>
 
     <button v-else type="button" class="chat-fab" aria-label="챗봇 열기" @click="isOpen = true">
-      <span class="fab-avatar asset-placeholder" aria-hidden="true"></span>
+      <img :src="mascotImage" alt="서울 축제 도우미" class="fab-avatar" aria-hidden="true" />
       <span class="fab-copy">
         <strong>서울 축제 도우미</strong>
         <small>어디로 떠나볼까요?</small>
