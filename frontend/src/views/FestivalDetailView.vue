@@ -92,17 +92,16 @@ const loadFestival = async () => {
   errorMessage.value = ''
   try {
     festival.value = await getFestivalById(route.params.id)
-    await nextTick()
-    renderMap()
     await loadNearbyPlaces()
-    await nextTick()
-    renderMap()
   } catch (error) {
     festival.value = null
     errorMessage.value = error instanceof Error ? error.message : '축제 정보를 불러오지 못했습니다.'
   } finally {
     loading.value = false
   }
+
+  await nextTick()
+  renderMap()
 }
 
 onMounted(async () => {

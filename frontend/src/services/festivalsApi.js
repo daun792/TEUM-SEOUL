@@ -1,5 +1,11 @@
 import { requestJson } from './apiBase'
 
+function toNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function formatPeriod(startDate, endDate) {
   if (startDate && endDate) {
     if (startDate === endDate) return startDate
@@ -19,8 +25,8 @@ function mapFestival(item) {
     place: item.address || item.addr1 || '장소 정보 없음',
     description: item.overview || `${item.category || '축제'} 관련 장소입니다.`,
     imageUrl: item.image_url || item.thumbnail_url || '',
-    lat: item.lat ?? item.latitude ?? null,
-    lng: item.lng ?? item.longitude ?? null,
+    lat: toNumberOrNull(item.lat ?? item.latitude),
+    lng: toNumberOrNull(item.lng ?? item.longitude),
     category: item.category || '축제공연행사',
   }
 }
@@ -31,9 +37,9 @@ function mapNearbyPlace(item) {
     title: item.title || item.name || '장소명 없음',
     category: item.category || '기타',
     address: item.address || item.addr1 || '주소 정보 없음',
-    lat: item.lat ?? item.latitude ?? null,
-    lng: item.lng ?? item.longitude ?? null,
-    distanceKm: item.distance_km ?? null,
+    lat: toNumberOrNull(item.lat ?? item.latitude),
+    lng: toNumberOrNull(item.lng ?? item.longitude),
+    distanceKm: toNumberOrNull(item.distance_km),
   }
 }
 

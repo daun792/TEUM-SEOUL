@@ -1,15 +1,21 @@
 import { requestJson } from './apiBase'
 
+function toNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function mapPlace(item) {
   return {
     id: String(item.content_id ?? item.id),
     name: item.name || item.title || '장소명 없음',
     title: item.title || item.name || '장소명 없음',
     type: item.category || '기타',
-    lat: item.lat ?? item.latitude ?? null,
-    lng: item.lng ?? item.longitude ?? null,
+    lat: toNumberOrNull(item.lat ?? item.latitude),
+    lng: toNumberOrNull(item.lng ?? item.longitude),
     address: item.address || item.addr1 || '',
-    distanceKm: item.distance_km ?? null,
+    distanceKm: toNumberOrNull(item.distance_km),
     contentTypeId: item.content_type_id || null,
   }
 }

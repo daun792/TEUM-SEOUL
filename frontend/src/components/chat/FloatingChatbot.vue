@@ -105,13 +105,13 @@ const submitMessage = async (presetMessage) => {
 }
 
 .chat-fab {
-  min-width: 380px;
-  min-height: 94px;
+  min-width: 460px;
+  min-height: 116px;
   display: grid;
-  grid-template-columns: 72px 1fr 36px;
+  grid-template-columns: 86px 1fr 42px;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 14px;
+  padding: 12px 16px;
   border: 1px solid #9dcc83;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.96);
@@ -126,8 +126,8 @@ const submitMessage = async (presetMessage) => {
 }
 
 .fab-avatar {
-  width: 70px;
-  height: 70px;
+  width: 84px;
+  height: 84px;
 }
 
 .fab-copy {
@@ -138,17 +138,17 @@ const submitMessage = async (presetMessage) => {
 
 .fab-copy strong {
   color: var(--color-primary-dark);
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .fab-copy small {
   color: #6c7a72;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .fab-arrow {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -157,21 +157,21 @@ const submitMessage = async (presetMessage) => {
 }
 
 .chat-panel {
-  width: min(460px, calc(100vw - 24px));
-  padding: 18px;
+  width: min(560px, calc(100vw - 24px));
+  padding: 20px;
   border-radius: 20px;
 }
 
 .chat-panel header {
   display: grid;
-  grid-template-columns: 44px 1fr 32px;
+  grid-template-columns: 56px 1fr 38px;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
 }
 
 .bot-avatar {
-  width: 42px;
-  height: 42px;
+  width: 54px;
+  height: 54px;
 }
 
 .chat-panel header div:nth-child(2) {
@@ -180,17 +180,17 @@ const submitMessage = async (presetMessage) => {
 
 .chat-panel header strong {
   color: var(--color-primary-dark);
-  font-size: 14px;
+  font-size: 18px;
 }
 
 .chat-panel header span {
   color: #728078;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .chat-panel header button {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--color-border);
   border-radius: 50%;
   background: #fff;
@@ -198,8 +198,8 @@ const submitMessage = async (presetMessage) => {
 }
 
 .messages {
-  min-height: 230px;
-  max-height: 420px;
+  min-height: 280px;
+  max-height: 520px;
   display: grid;
   align-content: start;
   gap: 8px;
@@ -216,7 +216,7 @@ const submitMessage = async (presetMessage) => {
   margin: 0;
   padding: 8px 10px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.55;
   white-space: pre-line;
 }
@@ -242,12 +242,12 @@ const submitMessage = async (presetMessage) => {
 }
 
 .suggestions button {
-  padding: 11px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: #fff;
   color: #3d5648;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 750;
   text-align: left;
   cursor: pointer;
@@ -275,16 +275,16 @@ const submitMessage = async (presetMessage) => {
   background: #fff;
   color: #263a2f;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .chat-input button {
-  padding: 0 18px;
+  padding: 0 20px;
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-primary-dark);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 750;
   cursor: pointer;
 }
