@@ -23,7 +23,7 @@ const props = defineProps({
 })
 
 const mapRef = ref(null)
-const selectedFilter = ref('축제')
+const selectedFilter = ref('전체')
 const filters = MAP_FILTERS
 const allPlaces = ref([])
 const filteredPlaces = computed(() => allPlaces.value)
@@ -33,7 +33,7 @@ const categoryToMapFilter = {
   '이번 주말': '축제',
   '무료 축제': '축제',
   공연: '축제',
-  전시: '문화시설',
+  전시: '전체',
   전통: '관광지',
   '야외 행사': '축제',
 }

@@ -89,7 +89,7 @@ const openFestival = () => {
   object-fit: cover;
 }
 
-.thumb-wrap::after {
+.thumb-wrap.asset-placeholder::after {
   content: '축제 썸네일';
 }
 

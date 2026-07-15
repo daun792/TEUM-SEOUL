@@ -34,6 +34,7 @@ function includesSelectedDate(festival) {
 }
 
 const selectedFestivals = computed(() => festivals.value.filter((festival) => includesSelectedDate(festival)))
+const undatedFestivals = computed(() => festivals.value.filter((festival) => !festival.start && !festival.end))
 
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, interactionPlugin],
@@ -88,6 +89,17 @@ onMounted(async () => {
         </li>
       </ul>
       <p v-else class="empty-day">선택한 날짜에 진행 중인 축제가 없습니다.</p>
+    </section>
+
+    <section v-if="!loading && !errorMessage && undatedFestivals.length" class="selected-wrap">
+      <h2>날짜 정보가 없는 축제</h2>
+      <p class="calendar-note">원본 데이터에 행사 날짜 필드가 없어 캘린더에 배치하지 못한 항목입니다.</p>
+      <ul class="selected-list">
+        <li v-for="festival in undatedFestivals" :key="festival.id + '-undated'" @click="router.push(`/festivals/${festival.id}`)">
+          <strong>{{ festival.title }}</strong>
+          <span>{{ festival.place }}</span>
+        </li>
+      </ul>
     </section>
   </main>
 </template>
@@ -161,6 +173,12 @@ h1 {
   padding: 14px;
   color: #63776c;
   font-weight: 700;
+}
+
+.calendar-note {
+  margin: 0 0 8px;
+  color: #64786d;
+  font-size: 13px;
 }
 
 .empty-box {

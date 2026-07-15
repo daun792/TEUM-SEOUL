@@ -21,18 +21,7 @@ const closeMobileMenu = () => {
         <RouterLink to="/festivals">축제 캘린더</RouterLink>
         <RouterLink to="/map">지도 탐색</RouterLink>
         <RouterLink to="/board">게시판</RouterLink>
-        <RouterLink to="/about">틈서울 소개</RouterLink>
       </nav>
-
-      <div class="desktop-actions">
-        <button type="button" class="round-action" aria-label="검색">
-          <span aria-hidden="true">⌕</span>
-        </button>
-        <button type="button" class="round-action" aria-label="북마크">
-          <span aria-hidden="true">♡</span>
-        </button>
-        <RouterLink class="week-btn" to="/festivals">이번 주 축제</RouterLink>
-      </div>
 
       <button
         type="button"
@@ -50,7 +39,6 @@ const closeMobileMenu = () => {
       <RouterLink to="/festivals" @click="closeMobileMenu">축제 캘린더</RouterLink>
       <RouterLink to="/map" @click="closeMobileMenu">지도 탐색</RouterLink>
       <RouterLink to="/board" @click="closeMobileMenu">게시판</RouterLink>
-      <RouterLink to="/about" @click="closeMobileMenu">틈서울 소개</RouterLink>
     </nav>
   </header>
 </template>
@@ -68,7 +56,7 @@ const closeMobileMenu = () => {
 .header-inner {
   min-height: 76px;
   display: grid;
-  grid-template-columns: 220px 1fr 260px;
+  grid-template-columns: 220px 1fr;
   align-items: center;
   gap: 20px;
 }
@@ -142,41 +130,6 @@ const closeMobileMenu = () => {
   right: 0;
 }
 
-.desktop-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.round-action {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  background: #fff;
-  color: #1c2b24;
-  cursor: pointer;
-  font-size: 24px;
-  line-height: 1;
-}
-
-.week-btn {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 24px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(135deg, #75bc36, #4c9c27);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
-  box-shadow: 0 8px 18px rgba(76, 156, 39, 0.2);
-}
-
 .mobile-menu-btn,
 .mobile-nav {
   display: none;
@@ -184,15 +137,11 @@ const closeMobileMenu = () => {
 
 @media (max-width: 1100px) {
   .header-inner {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 
   .desktop-nav {
     gap: 20px;
-  }
-
-  .desktop-actions .round-action {
-    display: none;
   }
 }
 
@@ -207,7 +156,7 @@ const closeMobileMenu = () => {
   }
 
   .desktop-nav,
-  .desktop-actions {
+  .desktop-nav {
     display: none;
   }
 

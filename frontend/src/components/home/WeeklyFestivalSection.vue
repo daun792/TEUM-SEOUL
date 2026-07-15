@@ -23,6 +23,7 @@ onMounted(async () => {
       title: festival.title,
       date: festival.period,
       place: festival.place,
+      imageUrl: festival.imageUrl,
       status: getFestivalStatus(festival),
       priceType: /무료/.test(festival.title) ? '무료' : '유료',
       tags: getFestivalTags(festival),

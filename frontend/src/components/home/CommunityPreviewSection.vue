@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import mascotImage from '../../assets/chatbot-mascot.webp'
 import { getPostList } from '../../services/postsApi'
 
 const router = useRouter()
@@ -42,14 +41,6 @@ onMounted(async () => {
       </li>
       <li v-if="!previewPosts.length" class="empty-item">아직 등록된 게시글이 없습니다.</li>
     </ul>
-
-    <div class="helper-card">
-      <div class="helper-copy">
-        <strong>서울 축제 도우미</strong>
-        <span>어디로 떠나볼까요?</span>
-      </div>
-      <img :src="mascotImage" alt="서울 축제 도우미" class="bot-avatar" />
-    </div>
   </section>
 </template>
 
@@ -154,49 +145,4 @@ h2 {
   font-size: 10px;
 }
 
-.helper-card {
-  min-height: 92px;
-  display: grid;
-  grid-template-columns: 1fr 82px;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 10px 9px 10px 14px;
-  border: 1px solid #d9e9ce;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #fbfff5, #f0f8e8);
-}
-
-.helper-copy {
-  display: grid;
-  gap: 3px;
-}
-
-.helper-copy strong {
-  color: var(--color-primary-dark);
-  font-size: 15px;
-}
-
-.helper-copy span {
-  color: #5e7066;
-  font-size: 11px;
-}
-
-.mascot-placeholder {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-}
-
-.mascot-placeholder::after {
-  content: '캐릭터';
-  padding: 4px 7px;
-  font-size: 9px;
-}
-
-@media (max-width: 1320px) {
-  .helper-card {
-    margin-top: 14px;
-  }
-}
 </style>

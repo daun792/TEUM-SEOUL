@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
 })
 
 const mapRef = ref(null)
-const selectedFilter = ref('축제')
+const selectedFilter = ref('전체')
 const filters = MAP_FILTERS
 const places = ref([])
 const loading = ref(false)
