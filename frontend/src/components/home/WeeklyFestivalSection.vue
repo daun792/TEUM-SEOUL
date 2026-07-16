@@ -1,6 +1,5 @@
 <script setup>
-import { computed } from 'vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import FestivalCard from '../festival/FestivalCard.vue'
 import { getFestivalList } from '../../services/festivalsApi'
@@ -41,11 +40,11 @@ const filteredFestivals = computed(() =>
 <template>
   <section class="weekly section-card">
     <header class="section-head">
-      <h2>이번 주 추천 축제</h2>
+      <h2>축제 목록</h2>
       <RouterLink to="/festivals">더보기 <span aria-hidden="true">›</span></RouterLink>
     </header>
 
-    <div v-if="filteredFestivals.length" class="card-grid">
+    <div v-if="filteredFestivals.length" class="card-slider">
       <FestivalCard v-for="item in filteredFestivals" :key="item.id" :festival="item" />
     </div>
 
@@ -55,6 +54,9 @@ const filteredFestivals = computed(() =>
 
 <style scoped>
 .weekly {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
   border-radius: 18px;
 }
@@ -80,14 +82,25 @@ h2 {
   font-weight: 750;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.card-slider {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
   gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.card-slider :deep(.festival-card) {
+  flex: 0 0 clamp(220px, 22vw, 250px);
+  scroll-snap-align: start;
 }
 
 .empty-state {
   margin: 10px 0 2px;
+  flex: 1;
   min-height: 110px;
   display: grid;
   place-items: center;
@@ -100,11 +113,12 @@ h2 {
 }
 
 @media (max-width: 760px) {
-  .card-grid {
-    display: flex;
-    overflow-x: auto;
-    padding-bottom: 5px;
-    scrollbar-width: thin;
+  .card-slider {
+    gap: 8px;
+  }
+
+  .card-slider :deep(.festival-card) {
+    flex-basis: 230px;
   }
 }
 </style>
