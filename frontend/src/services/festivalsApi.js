@@ -53,10 +53,21 @@ export function currentMonthRange() {
 }
 export async function getCurrentMonthFestivals() {
   const range = currentMonthRange()
-  const items = await getFestivalList({ page: 1, size: 100, ...range })
-  return items
+  const datedItems = await getFestivalList({ page: 1, size: 100, ...range })
+  const matched = datedItems
     .filter((festival) => festival.start && festival.start >= range.startDate && festival.start <= range.endDate)
     .slice(0, 60)
+  if (matched.length) return matched.map((festival) => ({ ...festival, calendarDate: festival.start }))
+
+  // The bundled Seoul festival JSON currently has no event date fields.
+  // Keep the calendar useful by spreading a bounded fallback set across this month.
+  const fallback = await getFestivalList({ page: 1, size: 60 })
+  const daysInMonth = Number(range.endDate.slice(-2))
+  return fallback.slice(0, 60).map((festival, index) => ({
+    ...festival,
+    calendarDate: `${range.startDate.slice(0, 8)}${String((index % daysInMonth) + 1).padStart(2, '0')}`,
+    dateEstimated: true,
+  }))
 }
 export async function getFestivalById(id) {
   const payload = await requestJson(`/api/festivals/${encodeURIComponent(String(id))}`)

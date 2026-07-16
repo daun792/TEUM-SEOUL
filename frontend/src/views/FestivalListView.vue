@@ -32,14 +32,14 @@ const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0
 const toLocalDate = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 
 const events = computed(() => filteredFestivals.value.map((festival) => ({
-  id: festival.id, title: festival.title, start: festival.start, allDay: true,
+  id: festival.id, title: festival.title, start: festival.calendarDate || festival.start, allDay: true,
   extendedProps: { type: typeOf(festival) },
 })))
 function includesDate(festival) {
   if (!festival.start) return false
   return festival.start <= selectedDate.value && (festival.end || festival.start) >= selectedDate.value
 }
-const selectedFestivals = computed(() => filteredFestivals.value.filter((festival) => festival.start === selectedDate.value).slice(0, 3))
+const selectedFestivals = computed(() => filteredFestivals.value.filter((festival) => (festival.calendarDate || festival.start) === selectedDate.value).slice(0, 3))
 const undatedFestivals = computed(() => filteredFestivals.value.filter((festival) => !festival.start && !festival.end))
 const selectedDateLabel = computed(() => {
   const date = new Date(`${selectedDate.value}T00:00:00`)

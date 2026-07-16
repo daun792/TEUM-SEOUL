@@ -10,7 +10,9 @@ onMounted(async () => {
   try {
     const festivals = await getCurrentMonthFestivals()
     weeklyFestivals.value = festivals.map((festival) => ({
-      id: festival.id, title: festival.title, date: festival.period, place: festival.place,
+      id: festival.id, title: festival.title,
+      date: festival.dateEstimated ? `${festival.calendarDate} · 일정 확인 필요` : festival.period,
+      place: festival.place,
       imageUrl: festival.imageUrl, status: getFestivalStatus(festival),
       priceType: /무료/.test(festival.title) ? '무료' : '유료', tags: getFestivalTags(festival),
     }))
