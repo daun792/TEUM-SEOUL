@@ -39,6 +39,8 @@ class Post(Base):
     __tablename__ = "posts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category: Mapped[str] = mapped_column(String(30), default="자유", nullable=False, index=True)
+    festival_id: Mapped[str | None] = mapped_column(String(40), index=True)
     title: Mapped[str] = mapped_column(String(200), index=True, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     author: Mapped[str] = mapped_column(String(50), default="익명", nullable=False)

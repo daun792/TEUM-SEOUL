@@ -5,14 +5,15 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
 import { useRouter } from 'vue-router'
-import { getFestivalList } from '../../mocks/festivals'
+import { getFestivalList } from '../../services/festivalsApi'
+import { getFestivalTags } from '../../utils/festivalTags'
 
 const selectedDate = ref('2026-07-18')
 const router = useRouter()
 const props = defineProps({
   selectedCategory: {
     type: String,
-    default: '오늘',
+    default: '전체',
   },
 })
 
@@ -20,23 +21,24 @@ const categoryPalette = ['#6b5bd1', '#42a9cd', '#69b62f', '#f25752', '#ff8a24']
 const events = ref([])
 
 onMounted(async () => {
-  const festivals = await getFestivalList()
-  events.value = festivals.map((festival, index) => ({
-    id: festival.id,
-    title: festival.title,
-    start: festival.start,
-    end: festival.end,
-    color: categoryPalette[index % categoryPalette.length],
-    display: 'list-item',
-    extendedProps: {
-      tags:
-        index === 0
-          ? ['오늘', '이번 주말', '무료 축제', '공연', '야외 행사']
-          : index === 1
-            ? ['오늘', '이번 주말', '무료 축제', '전시']
-            : ['전통'],
-    },
-  }))
+  try {
+    const festivals = await getFestivalList({ page: 1, size: 300 })
+    events.value = festivals
+      .filter((festival) => festival.start)
+      .map((festival, index) => ({
+        id: festival.id,
+        title: festival.title,
+        start: festival.start,
+        end: festival.end || festival.start,
+        color: categoryPalette[index % categoryPalette.length],
+        display: 'list-item',
+        extendedProps: {
+          tags: getFestivalTags(festival),
+        },
+      }))
+  } catch {
+    events.value = []
+  }
 })
 
 const filteredEvents = computed(() =>
@@ -89,6 +91,8 @@ const calendarOptions = computed(() => ({
 <style scoped>
 .calendar-section {
   height: 100%;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
   border-radius: 18px;
 }
@@ -122,6 +126,10 @@ h2 {
   color: #5e6d65;
   font-size: 10px;
   font-weight: 750;
+}
+
+:deep(.fc) {
+  flex: 1;
 }
 
 .legend span {

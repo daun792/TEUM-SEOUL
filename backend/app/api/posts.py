@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.database.models import Post
-from app.schemas.posts import PasswordConfirm, PostCreate, PostPage, PostRead, PostUpdate
+from app.schemas.posts import PasswordConfirm, PostCategory, PostCreate, PostPage, PostRead, PostUpdate
 from app.services.passwords import hash_password, verify_password
 
 router = APIRouter(prefix="/api/posts", tags=["posts"])
@@ -27,14 +27,22 @@ def _verify_or_403(post: Post, password: str) -> None:
 @router.get("", response_model=PostPage)
 def list_posts(
     q: str | None = Query(default=None, max_length=100),
+    keyword: str | None = Query(default=None, max_length=100),
+    category: PostCategory | None = Query(default=None),
+    festival_id: str | None = Query(default=None, max_length=40),
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     filters = []
-    if q:
-        keyword = f"%{q.strip()}%"
-        filters.append(or_(Post.title.ilike(keyword), Post.content.ilike(keyword)))
+    search_keyword = (keyword or q or "").strip()
+    if search_keyword:
+        pattern = f"%{search_keyword}%"
+        filters.append(or_(Post.title.ilike(pattern), Post.content.ilike(pattern)))
+    if category:
+        filters.append(Post.category == category)
+    if festival_id:
+        filters.append(Post.festival_id == festival_id.strip())
     total = db.scalar(select(func.count()).select_from(Post).where(*filters)) or 0
     posts = db.scalars(
         select(Post)
@@ -60,9 +68,11 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=PostRead, status_code=status.HTTP_201_CREATED)
 def create_post(payload: PostCreate, db: Session = Depends(get_db)):
     post = Post(
+        category=payload.category,
         title=payload.title.strip(),
         content=payload.content.strip(),
         author=payload.author.strip() or "익명",
+        festival_id=payload.festival_id.strip() if payload.festival_id else None,
         password_hash=hash_password(payload.password),
     )
     db.add(post)
@@ -82,8 +92,11 @@ def verify_post_password(post_id: int, payload: PasswordConfirm, db: Session = D
 def update_post(post_id: int, payload: PostUpdate, db: Session = Depends(get_db)):
     post = _get_post_or_404(db, post_id)
     _verify_or_403(post, payload.password)
+    if payload.category is not None:
+        post.category = payload.category
     post.title = payload.title.strip()
     post.content = payload.content.strip()
+    post.festival_id = payload.festival_id.strip() if payload.festival_id else None
     db.commit()
     db.refresh(post)
     return post

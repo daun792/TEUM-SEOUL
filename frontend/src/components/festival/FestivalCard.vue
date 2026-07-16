@@ -21,7 +21,8 @@ const openFestival = () => {
   <article class="festival-card">
     <button type="button" class="card-hit" :aria-label="`${festival.title} 상세 보기`" @click="openFestival"></button>
 
-    <div class="thumb-wrap asset-placeholder">
+    <div class="thumb-wrap" :class="{ 'asset-placeholder': !festival.imageUrl }">
+      <img v-if="festival.imageUrl" :src="festival.imageUrl" :alt="festival.title" class="thumb-image" />
       <span class="badge" :class="festival.status === '진행중' ? 'on' : 'soon'">
         {{ festival.status }}
       </span>
@@ -33,7 +34,7 @@ const openFestival = () => {
       <p>{{ festival.place }}</p>
 
       <div class="bottom">
-        <span class="price-tag" :class="festival.priceType === '무료' ? 'free' : 'paid'">
+        <span class="price-tag" :class="festival.priceType === '무료' ? 'free' : (festival.priceType === '유료' ? 'paid' : 'unknown')">
           {{ festival.priceType }}
         </span>
         <button
@@ -78,9 +79,17 @@ const openFestival = () => {
   height: 170px;
   border: 0;
   border-radius: 0;
+  position: relative;
+  overflow: hidden;
 }
 
-.thumb-wrap::after {
+.thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-wrap.asset-placeholder::after {
   content: '축제 썸네일';
 }
 
@@ -147,6 +156,11 @@ p {
 .price-tag.paid {
   background: #fff0df;
   color: #c3661d;
+}
+
+.price-tag.unknown {
+  background: #edf1ea;
+  color: #5e7066;
 }
 
 .bookmark-btn {

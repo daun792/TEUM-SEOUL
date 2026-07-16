@@ -8,7 +8,7 @@ import MapPreviewSection from '../components/home/MapPreviewSection.vue'
 import CommunityPreviewSection from '../components/home/CommunityPreviewSection.vue'
 import HomeDecoration from '../components/home/HomeDecoration.vue'
 
-const activeCategory = ref('오늘')
+const activeCategory = ref('전체')
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const activeCategory = ref('오늘')
     <section class="container dashboard" aria-label="틈서울 메인 콘텐츠">
       <WeeklyFestivalSection class="festival-panel" :selected-category="activeCategory" />
       <FestivalCalendarSection class="calendar-panel" :selected-category="activeCategory" />
-      <MapPreviewSection class="map-panel" :selected-category="activeCategory" />
+      <MapPreviewSection class="map-panel" />
       <CommunityPreviewSection class="community-panel" />
     </section>
 

@@ -104,8 +104,11 @@ def get_festival(content_id: str, db: Session = Depends(get_db)):
 def get_nearby_places(
     content_id: str,
     radius_km: float = Query(default=2.0, gt=0, le=20),
-    categories: str | None = Query(default=None, description="Comma-separated category names"),
-    limit: int = Query(default=30, ge=1, le=100),
+    categories: str | None = Query(
+        default="관광지,문화시설,쇼핑",
+        description="Comma-separated category names",
+    ),
+    limit: int = Query(default=8, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     festival = db.scalar(
