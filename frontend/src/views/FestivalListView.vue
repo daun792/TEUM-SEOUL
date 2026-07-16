@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
 import { useRouter } from 'vue-router'
-import { getAllActiveFestivals } from '../services/festivalsApi'
+import { getFestivalList } from '../services/festivalsApi'
 
 const router = useRouter()
 const festivals = ref([])
@@ -26,20 +26,32 @@ function typeOf(festival) {
 const typeIcon = (type) => ({ 공연: '♫', 전시: '▣', 체험: '♙', 축제: '✿', 기타: '●' }[type] || '✿')
 const filteredFestivals = computed(() => selectedType.value === '전체'
   ? festivals.value : festivals.value.filter((festival) => typeOf(festival) === selectedType.value))
-const events = computed(() => filteredFestivals.value.filter((festival) => festival.start).map((festival) => ({
-  id: festival.id, title: festival.title, start: festival.start,
-  end: festival.end ? addOneDay(festival.end) : undefined, allDay: true,
-  extendedProps: { type: typeOf(festival) },
-})))
-function addOneDay(value) {
-  const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1)
-  return date.toISOString().slice(0, 10)
-}
+const monthStart = new Date()
+monthStart.setDate(1)
+const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
+const toLocalDate = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+const monthStartValue = toLocalDate(monthStart)
+const monthEndValue = toLocalDate(monthEnd)
+
+const events = computed(() => {
+  const onePerDay = []
+  const cursor = new Date(monthStart)
+  while (cursor <= monthEnd) {
+    const date = toLocalDate(cursor)
+    const festival = filteredFestivals.value.find((item) => item.start && item.start <= date && (item.end || item.start) >= date)
+    if (festival) onePerDay.push({
+      id: festival.id, title: festival.title, start: date, allDay: true,
+      extendedProps: { type: typeOf(festival) },
+    })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return onePerDay
+})
 function includesDate(festival) {
   if (!festival.start) return false
   return festival.start <= selectedDate.value && (festival.end || festival.start) >= selectedDate.value
 }
-const selectedFestivals = computed(() => filteredFestivals.value.filter(includesDate))
+const selectedFestivals = computed(() => filteredFestivals.value.filter(includesDate).slice(0, 1))
 const undatedFestivals = computed(() => filteredFestivals.value.filter((festival) => !festival.start && !festival.end))
 const selectedDateLabel = computed(() => {
   const date = new Date(`${selectedDate.value}T00:00:00`)
@@ -60,7 +72,7 @@ const calendarOptions = computed(() => ({
 }))
 
 onMounted(async () => {
-  try { festivals.value = await getAllActiveFestivals() }
+  try { festivals.value = await getFestivalList({ page: 1, size: 100, startDate: monthStartValue, endDate: monthEndValue }) }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : '축제 데이터를 불러오지 못했습니다.' }
   finally { loading.value = false }
 })

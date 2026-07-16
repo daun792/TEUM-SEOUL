@@ -28,6 +28,8 @@ export async function getFestivalList(params = {}) {
   if (params.page) search.set('page', String(params.page))
   if (params.size) search.set('size', String(params.size))
   if (params.q) search.set('q', params.q)
+  if (params.startDate) search.set('start_date', params.startDate)
+  if (params.endDate) search.set('end_date', params.endDate)
   const query = search.toString()
   const payload = await requestJson(`/api/festivals${query ? `?${query}` : ''}`)
   return Array.isArray(payload?.items) ? payload.items.map(mapFestival) : []
