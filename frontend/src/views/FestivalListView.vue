@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
 import { useRouter } from 'vue-router'
-import { currentMonthRange, getCurrentMonthSingleDayFestivals } from '../services/festivalsApi'
+import { currentMonthRange, getCurrentMonthFestivals } from '../services/festivalsApi'
 
 const router = useRouter()
 const festivals = ref([])
@@ -31,25 +31,15 @@ const monthStart = new Date(`${range.startDate}T00:00:00`)
 const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 const toLocalDate = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 
-const events = computed(() => {
-  const onePerDay = []
-  const cursor = new Date(monthStart)
-  while (cursor <= monthEnd) {
-    const date = toLocalDate(cursor)
-    const festival = filteredFestivals.value.find((item) => item.start && item.start <= date && (item.end || item.start) >= date)
-    if (festival) onePerDay.push({
-      id: festival.id, title: festival.title, start: date, allDay: true,
-      extendedProps: { type: typeOf(festival) },
-    })
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return onePerDay
-})
+const events = computed(() => filteredFestivals.value.map((festival) => ({
+  id: festival.id, title: festival.title, start: festival.start, allDay: true,
+  extendedProps: { type: typeOf(festival) },
+})))
 function includesDate(festival) {
   if (!festival.start) return false
   return festival.start <= selectedDate.value && (festival.end || festival.start) >= selectedDate.value
 }
-const selectedFestivals = computed(() => filteredFestivals.value.filter(includesDate).slice(0, 1))
+const selectedFestivals = computed(() => filteredFestivals.value.filter((festival) => festival.start === selectedDate.value).slice(0, 3))
 const undatedFestivals = computed(() => filteredFestivals.value.filter((festival) => !festival.start && !festival.end))
 const selectedDateLabel = computed(() => {
   const date = new Date(`${selectedDate.value}T00:00:00`)
@@ -70,7 +60,7 @@ const calendarOptions = computed(() => ({
 }))
 
 onMounted(async () => {
-  try { festivals.value = await getCurrentMonthSingleDayFestivals() }
+  try { festivals.value = await getCurrentMonthFestivals() }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : '축제 데이터를 불러오지 못했습니다.' }
   finally { loading.value = false }
 })

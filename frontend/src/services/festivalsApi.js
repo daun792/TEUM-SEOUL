@@ -51,10 +51,12 @@ export function currentMonthRange() {
   const local = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
   return { startDate: local(start), endDate: local(end) }
 }
-export async function getCurrentMonthSingleDayFestivals() {
+export async function getCurrentMonthFestivals() {
   const range = currentMonthRange()
   const items = await getFestivalList({ page: 1, size: 100, ...range })
-  return items.filter((festival) => festival.start && festival.end && festival.start === festival.end)
+  return items
+    .filter((festival) => festival.start && festival.start >= range.startDate && festival.start <= range.endDate)
+    .slice(0, 60)
 }
 export async function getFestivalById(id) {
   const payload = await requestJson(`/api/festivals/${encodeURIComponent(String(id))}`)
