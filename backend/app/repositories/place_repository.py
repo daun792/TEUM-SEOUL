@@ -1,82 +1,36 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.database.models import Place
 
 
 class PlaceRepository:
-
     def __init__(self, db: Session):
         self.db = db
-
 
     def search_places(
         self,
         keyword: str,
-        category: str = None,
-        limit: int = 5
-    ):
+        category: str | None = None,
+        limit: int = 5,
+    ) -> list[Place]:
+        statement = select(Place)
 
-        query = self.db.query(Place)
-
-        if keyword:
-
-            keywords = keyword.split()
-
-            for word in keywords:
-
-                query = query.filter(
-                    or_(
-                        Place.title.like(f"%{word}%"),
-                        Place.addr1.like(f"%{word}%")
-                    )
+        for word in keyword.split():
+            pattern = f"%{word}%"
+            statement = statement.where(
+                or_(
+                    Place.title.ilike(pattern),
+                    Place.addr1.ilike(pattern),
+                    Place.addr2.ilike(pattern),
                 )
-
-        if category:
-            query = query.filter(
-                Place.category == category
             )
 
-        return query.limit(limit).all()
+        if category:
+            statement = statement.where(Place.category == category)
 
+        statement = statement.order_by(Place.title.asc()).limit(limit)
+        return list(self.db.scalars(statement).all())
 
-
-    def search_festivals(
-        self,
-        keyword: str,
-        limit: int = 5
-    ):
-
-        query = self.db.query(Place)
-
-        # 축제 데이터만 조회
-        query = query.filter(
-            Place.category == "축제"
-        )
-
-
-        if keyword:
-
-            keywords = keyword.split()
-
-            for word in keywords:
-
-                query = query.filter(
-                    or_(
-                        Place.title.like(f"%{word}%"),
-                        Place.addr1.like(f"%{word}%")
-                    )
-                )
-
-
-        return query.limit(limit).all()
-
-
-
-    def get_by_title(self, title: str):
-
-        return (
-            self.db.query(Place)
-            .filter(Place.title == title)
-            .first()
-        )
+    def get_by_title(self, title: str) -> Place | None:
+        return self.db.scalar(select(Place).where(Place.title == title))
