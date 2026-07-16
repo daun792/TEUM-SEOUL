@@ -44,6 +44,18 @@ export async function getAllActiveFestivals(params = {}) {
   const today = new Date().toISOString().slice(0, 10)
   return all.filter((festival) => !festival.end || festival.end >= today)
 }
+export function currentMonthRange() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const local = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+  return { startDate: local(start), endDate: local(end) }
+}
+export async function getCurrentMonthSingleDayFestivals() {
+  const range = currentMonthRange()
+  const items = await getFestivalList({ page: 1, size: 100, ...range })
+  return items.filter((festival) => festival.start && festival.end && festival.start === festival.end)
+}
 export async function getFestivalById(id) {
   const payload = await requestJson(`/api/festivals/${encodeURIComponent(String(id))}`)
   return payload ? mapFestival(payload) : null

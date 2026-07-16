@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
 import { useRouter } from 'vue-router'
-import { getFestivalList } from '../services/festivalsApi'
+import { currentMonthRange, getCurrentMonthSingleDayFestivals } from '../services/festivalsApi'
 
 const router = useRouter()
 const festivals = ref([])
@@ -26,12 +26,10 @@ function typeOf(festival) {
 const typeIcon = (type) => ({ 공연: '♫', 전시: '▣', 체험: '♙', 축제: '✿', 기타: '●' }[type] || '✿')
 const filteredFestivals = computed(() => selectedType.value === '전체'
   ? festivals.value : festivals.value.filter((festival) => typeOf(festival) === selectedType.value))
-const monthStart = new Date()
-monthStart.setDate(1)
+const range = currentMonthRange()
+const monthStart = new Date(`${range.startDate}T00:00:00`)
 const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 const toLocalDate = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-const monthStartValue = toLocalDate(monthStart)
-const monthEndValue = toLocalDate(monthEnd)
 
 const events = computed(() => {
   const onePerDay = []
@@ -72,7 +70,7 @@ const calendarOptions = computed(() => ({
 }))
 
 onMounted(async () => {
-  try { festivals.value = await getFestivalList({ page: 1, size: 100, startDate: monthStartValue, endDate: monthEndValue }) }
+  try { festivals.value = await getCurrentMonthSingleDayFestivals() }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : '축제 데이터를 불러오지 못했습니다.' }
   finally { loading.value = false }
 })
