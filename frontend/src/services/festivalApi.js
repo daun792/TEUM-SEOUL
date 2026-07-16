@@ -1,4 +1,4 @@
-import { requestJson } from './apiBase'
+import { requestJson } from './apiBase.js'
 
 function toFestival(item) {
   return {

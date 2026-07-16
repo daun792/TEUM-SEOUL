@@ -1,114 +1,610 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import koLocale from '@fullcalendar/core/locales/ko'
-import { useRouter } from 'vue-router'
-import { getAllActiveFestivals } from '../services/festivalsApi'
+import { useRoute, useRouter } from 'vue-router'
+import FestivalCard from '../components/festival/FestivalCard.vue'
+import { getFestivalPage } from '../services/festivalsApi.js'
+import { useFestivalQuery } from '../composables/useFestivalQuery.js'
+import { addDaysIso, calendarRange, formatLocalDate, todayIso } from '../utils/dateRange.js'
+import { getFestivalStatus } from '../utils/festivalTags.js'
 
+const PAGE_SIZE = 24
+const CALENDAR_PAGE_SIZE = 100
+const SEARCH_DEBOUNCE_MS = 300
+
+const route = useRoute()
 const router = useRouter()
-const festivals = ref([])
-const loading = ref(true)
-const errorMessage = ref('')
-const selectedDate = ref(new Date().toISOString().slice(0, 10))
-const selectedType = ref('전체')
-const categories = ['전체', '공연', '전시', '체험', '축제', '기타']
+const searchInput = ref(String(route.query.q || ''))
+const includePast = ref(route.query.includePast === '1')
+const selectedDate = ref(todayIso())
+const visibleRange = ref(null)
+let searchTimer = null
 
-function typeOf(festival) {
-  const text = `${festival.title} ${festival.category}`
-  if (/공연|콘서트|음악|연극|뮤지컬|무용|국악/.test(text)) return '공연'
-  if (/전시|미술|박람회|페어|아트/.test(text)) return '전시'
-  if (/체험|워크숍|교육|만들기/.test(text)) return '체험'
-  if (/축제|페스티벌|행사|마켓/.test(text)) return '축제'
-  return '기타'
-}
-const typeIcon = (type) => ({ 공연: '♫', 전시: '▣', 체험: '♙', 축제: '✿', 기타: '●' }[type] || '✿')
-const filteredFestivals = computed(() => selectedType.value === '전체'
-  ? festivals.value : festivals.value.filter((festival) => typeOf(festival) === selectedType.value))
-const events = computed(() => filteredFestivals.value.filter((festival) => festival.start).map((festival) => ({
-  id: festival.id, title: festival.title, start: festival.start,
-  end: festival.end ? addOneDay(festival.end) : undefined, allDay: true,
-  extendedProps: { type: typeOf(festival) },
+const listQuery = useFestivalQuery(
+  (params, options) => getFestivalPage(params, options),
+  { initialData: { items: [], total: 0, page: 1, size: PAGE_SIZE, pages: 0 } },
+)
+const calendarQuery = useFestivalQuery(
+  (params, options) => getFestivalPage(params, options),
+  { initialData: { items: [], total: 0, page: 1, size: CALENDAR_PAGE_SIZE, pages: 0 } },
+)
+
+const viewMode = computed(() => (route.query.view === 'calendar' ? 'calendar' : 'list'))
+const currentPage = computed(() => {
+  const parsed = Number(route.query.page)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+})
+const normalizedKeyword = computed(() => String(route.query.q || '').trim())
+
+const listFestivals = computed(() => listQuery.data.value?.items || [])
+const festivalCards = computed(() => listFestivals.value.map((festival) => ({
+  ...festival,
+  date: festival.period,
+  status: getFestivalStatus(festival),
+  priceType: /무료/.test(festival.title) ? '무료' : '정보 없음',
 })))
-function addOneDay(value) {
-  const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1)
-  return date.toISOString().slice(0, 10)
-}
-function includesDate(festival) {
+
+const calendarFestivals = computed(() => calendarQuery.data.value?.items || [])
+const calendarEvents = computed(() => calendarFestivals.value
+  .filter((festival) => festival.start)
+  .map((festival) => ({
+    id: festival.id,
+    title: festival.title,
+    start: festival.start,
+    end: addDaysIso(festival.end || festival.start, 1),
+    allDay: true,
+  })))
+
+const selectedFestivals = computed(() => calendarFestivals.value.filter((festival) => {
   if (!festival.start) return false
-  return festival.start <= selectedDate.value && (festival.end || festival.start) >= selectedDate.value
+  const end = festival.end || festival.start
+  return festival.start <= selectedDate.value && selectedDate.value <= end
+}))
+
+function cleanQuery(query) {
+  const cleaned = { ...query }
+  for (const [key, value] of Object.entries(cleaned)) {
+    if (value === undefined || value === null || value === '' || value === false) delete cleaned[key]
+  }
+  return cleaned
 }
-const selectedFestivals = computed(() => filteredFestivals.value.filter(includesDate))
-const undatedFestivals = computed(() => filteredFestivals.value.filter((festival) => !festival.start && !festival.end))
-const selectedDateLabel = computed(() => {
-  const date = new Date(`${selectedDate.value}T00:00:00`)
-  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).format(date)
+
+function updateRoute(patch) {
+  const nextQuery = cleanQuery({ ...route.query, ...patch })
+  const current = new URLSearchParams(cleanQuery(route.query)).toString()
+  const next = new URLSearchParams(nextQuery).toString()
+  if (current === next) return
+  router.replace({ query: nextQuery })
+}
+
+function listParams() {
+  return {
+    q: normalizedKeyword.value || undefined,
+    startDate: includePast.value ? undefined : todayIso(),
+    page: currentPage.value,
+    size: PAGE_SIZE,
+  }
+}
+
+function loadList(options = {}) {
+  return listQuery.run(listParams(), options)
+}
+
+function loadCalendar(options = {}) {
+  if (!visibleRange.value) return Promise.resolve(null)
+  return calendarQuery.run({
+    q: normalizedKeyword.value || undefined,
+    startDate: visibleRange.value.startDate,
+    endDate: visibleRange.value.endDate,
+    page: 1,
+    size: CALENDAR_PAGE_SIZE,
+  }, options)
+}
+
+function handleDatesSet(info) {
+  const range = calendarRange(info.start, info.end)
+  const unchanged = visibleRange.value
+    && visibleRange.value.startDate === range.startDate
+    && visibleRange.value.endDate === range.endDate
+  visibleRange.value = range
+  if (!unchanged) loadCalendar()
+}
+
+function setView(mode) {
+  updateRoute({ view: mode === 'calendar' ? 'calendar' : undefined, page: undefined })
+}
+
+function togglePast() {
+  updateRoute({ includePast: includePast.value ? '1' : undefined, page: undefined })
+}
+
+function goToPage(page) {
+  const maxPage = Math.max(1, listQuery.data.value?.pages || 1)
+  const nextPage = Math.min(maxPage, Math.max(1, page))
+  updateRoute({ page: nextPage === 1 ? undefined : String(nextPage) })
+}
+
+watch(searchInput, (value) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    const keyword = value.trim()
+    if (keyword === normalizedKeyword.value) return
+    updateRoute({ q: keyword || undefined, page: undefined })
+  }, SEARCH_DEBOUNCE_MS)
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    const routeKeyword = String(route.query.q || '')
+    if (searchInput.value !== routeKeyword) searchInput.value = routeKeyword
+    includePast.value = route.query.includePast === '1'
+    if (viewMode.value === 'calendar') loadCalendar()
+    else loadList()
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
 const calendarOptions = computed(() => ({
-  plugins: [dayGridPlugin, interactionPlugin], initialView: 'dayGridMonth', locale: koLocale,
-  headerToolbar: { left: 'prev', center: 'title', right: 'next' },
-  height: 'auto', fixedWeekCount: false, dayMaxEvents: 3, events: events.value,
-  dateClick(info) { selectedDate.value = info.dateStr },
-  eventClick(info) { router.push(`/festivals/${info.event.id}`) },
-  dayCellClassNames(info) {
-    const local = new Date(info.date.getTime() - info.date.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-    return local === selectedDate.value ? ['selected-day'] : []
+  plugins: [dayGridPlugin, interactionPlugin],
+  initialView: 'dayGridMonth',
+  locale: koLocale,
+  headerToolbar: {
+    left: 'prev',
+    center: 'title',
+    right: 'today next',
   },
-  eventContent(info) { return { html: `<span class="event-dot type-${info.event.extendedProps.type}"></span><span class="event-name">${info.event.title}</span>` } },
+  events: calendarEvents.value,
+  datesSet: handleDatesSet,
+  dateClick: (info) => {
+    selectedDate.value = info.dateStr
+  },
+  eventClick: (info) => {
+    router.push(`/festivals/${info.event.id}`)
+  },
+  dayCellClassNames: (info) => (
+    formatLocalDate(info.date) === selectedDate.value ? ['selected-day'] : []
+  ),
 }))
-
-onMounted(async () => {
-  try { festivals.value = await getAllActiveFestivals() }
-  catch (error) { errorMessage.value = error instanceof Error ? error.message : '축제 데이터를 불러오지 못했습니다.' }
-  finally { loading.value = false }
-})
 </script>
 
 <template>
-  <main class="calendar-page">
-    <section class="calendar-hero container">
-      <div><h1><span>🗓️</span> 축제 캘린더 <em>♣</em></h1><p>매일 열리는 서울의 축제와 행사 정보를 확인하고, 일정을 계획해 보세요.</p></div>
-      <div class="hero-scene" aria-hidden="true"><span>🏯</span><span>🌳</span><span>🎪</span><span>🏙️</span><span>🚐</span></div>
+  <main class="container festival-page">
+    <header class="page-head">
+      <div>
+        <p class="eyebrow">서울 문화행사</p>
+        <h1>행사 찾기</h1>
+        <p>진행 중이거나 예정된 행사를 먼저 보고, 필요한 경우 지난 행사까지 검색할 수 있습니다.</p>
+      </div>
+      <div class="view-tabs" role="tablist" aria-label="행사 보기 방식">
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="viewMode === 'list'"
+          :class="{ active: viewMode === 'list' }"
+          @click="setView('list')"
+        >목록</button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="viewMode === 'calendar'"
+          :class="{ active: viewMode === 'calendar' }"
+          @click="setView('calendar')"
+        >캘린더</button>
+      </div>
+    </header>
+
+    <section class="filter-card section-card" aria-label="행사 검색 및 필터">
+      <label class="search-field">
+        <span>행사명 또는 지역 검색</span>
+        <input
+          v-model="searchInput"
+          type="search"
+          placeholder="예: 클래식, 마포구, 한강"
+          autocomplete="off"
+        />
+      </label>
+      <label v-if="viewMode === 'list'" class="past-toggle">
+        <input v-model="includePast" type="checkbox" @change="togglePast" />
+        <span>지난 행사 포함</span>
+      </label>
+      <p class="filter-hint">
+        {{ viewMode === 'list' && !includePast ? '오늘 진행 중인 행사와 예정 행사를 표시합니다.' : '선택한 조건의 행사를 표시합니다.' }}
+      </p>
     </section>
 
-    <section v-if="loading" class="container state-card section-card">축제 데이터를 불러오는 중입니다...</section>
-    <section v-else-if="errorMessage" class="container state-card section-card">{{ errorMessage }}</section>
+    <template v-if="viewMode === 'list'">
+      <section class="result-head" aria-live="polite">
+        <strong>{{ listQuery.data.value?.total || 0 }}건</strong>
+        <span v-if="listQuery.loading.value && !listQuery.waking.value">행사를 불러오는 중입니다.</span>
+        <span v-else-if="listQuery.waking.value">서버를 깨우는 중입니다. 첫 요청은 최대 1분 정도 걸릴 수 있습니다.</span>
+      </section>
+
+      <section v-if="listQuery.error.value" class="state-card error-state" aria-live="assertive">
+        <strong>행사 데이터를 불러오지 못했습니다.</strong>
+        <p>{{ listQuery.error.value }}</p>
+        <button type="button" @click="listQuery.retry">다시 시도</button>
+      </section>
+
+      <section v-else-if="festivalCards.length" class="festival-grid" :aria-busy="listQuery.loading.value">
+        <FestivalCard v-for="festival in festivalCards" :key="festival.id" :festival="festival" />
+      </section>
+
+      <section v-else-if="!listQuery.loading.value" class="state-card empty-state" aria-live="polite">
+        <strong>조건에 맞는 행사가 없습니다.</strong>
+        <p>검색어를 바꾸거나 지난 행사 포함을 선택해 보세요.</p>
+      </section>
+
+      <nav v-if="(listQuery.data.value?.pages || 0) > 1" class="pagination" aria-label="행사 목록 페이지">
+        <button
+          type="button"
+          :disabled="currentPage <= 1 || listQuery.loading.value"
+          @click="goToPage(currentPage - 1)"
+        >이전</button>
+        <span>{{ currentPage }} / {{ listQuery.data.value.pages }}</span>
+        <button
+          type="button"
+          :disabled="currentPage >= listQuery.data.value.pages || listQuery.loading.value"
+          @click="goToPage(currentPage + 1)"
+        >다음</button>
+      </nav>
+    </template>
+
     <template v-else>
-      <div class="container calendar-layout">
-        <section class="calendar-panel section-card">
-          <FullCalendar :options="calendarOptions" />
-          <div class="type-filter" aria-label="축제 유형 필터">
-            <button v-for="type in categories" :key="type" type="button" :class="{ active: selectedType === type }" @click="selectedType = type">
-              <span>{{ type === '전체' ? '전체' : typeIcon(type) }}</span>{{ type === '전체' ? '' : type }}
-            </button>
-          </div>
-        </section>
+      <section class="calendar-shell section-card" :aria-busy="calendarQuery.loading.value">
+        <div class="calendar-status" aria-live="polite">
+          <span v-if="calendarQuery.waking.value">서버를 깨우는 중입니다.</span>
+          <span v-else-if="calendarQuery.loading.value">이 달의 행사를 불러오는 중입니다.</span>
+          <button v-if="calendarQuery.error.value" type="button" @click="calendarQuery.retry">불러오기 재시도</button>
+        </div>
+        <FullCalendar :options="calendarOptions" />
+        <p v-if="calendarQuery.data.value?.total > CALENDAR_PAGE_SIZE" class="calendar-note">
+          이 달의 행사 {{ calendarQuery.data.value.total }}건 중 {{ CALENDAR_PAGE_SIZE }}건을 표시합니다. 검색어로 범위를 좁혀보세요.
+        </p>
+      </section>
 
-        <aside class="selection-panel section-card">
-          <header><h2>선택한 날짜의 축제 <span>♣</span></h2><strong>{{ selectedDateLabel }}</strong></header>
-          <ul v-if="selectedFestivals.length">
-            <li v-for="festival in selectedFestivals.slice(0, 5)" :key="festival.id" @click="router.push(`/festivals/${festival.id}`)">
-              <div class="thumb" :class="{ empty: !festival.imageUrl }"><img v-if="festival.imageUrl" :src="festival.imageUrl" alt="" /><span v-else>{{ typeIcon(typeOf(festival)) }}</span></div>
-              <div><p><b :data-type="typeOf(festival)">{{ typeOf(festival) }}</b><strong>{{ festival.title }}</strong></p><small>{{ festival.place }}</small><small>{{ festival.period }}</small></div>
-            </li>
-          </ul>
-          <p v-else class="empty-day">선택한 날짜에 진행 중인 축제가 없습니다.</p>
-          <button class="day-button" type="button" @click="selectedType = '전체'">{{ selectedDate.slice(5).replace('-', '월 ') }}일 전체 축제 보기 ›</button>
-        </aside>
-      </div>
-
-      <section v-if="undatedFestivals.length" class="container undated-panel section-card">
-        <header><h2>날짜 정보가 없는 축제 <span>♣</span></h2><p>정확한 날짜가 추가로 공지될 예정인 축제입니다.</p></header>
-        <ul><li v-for="festival in undatedFestivals.slice(0, 10)" :key="festival.id" @click="router.push(`/festivals/${festival.id}`)"><span>{{ typeIcon(typeOf(festival)) }}</span><div><strong>{{ festival.title }}</strong><small>{{ festival.place }}</small></div></li></ul>
+      <section class="selected-wrap">
+        <h2>{{ selectedDate }} 진행 행사</h2>
+        <ul v-if="selectedFestivals.length" class="selected-list">
+          <li
+            v-for="festival in selectedFestivals"
+            :key="festival.id"
+            @click="router.push(`/festivals/${festival.id}`)"
+          >
+            <strong>{{ festival.title }}</strong>
+            <span>{{ festival.period }} · {{ festival.place }}</span>
+          </li>
+        </ul>
+        <p v-else class="state-card empty-day">선택한 날짜에 진행 중인 행사가 없습니다.</p>
       </section>
     </template>
   </main>
 </template>
 
 <style scoped>
-.calendar-page{min-height:calc(100vh - 76px);padding:26px 0 52px;background:radial-gradient(circle at 80% 8%,#eff8df 0,transparent 25%),#fffcf6}.calendar-hero{display:grid;grid-template-columns:.75fr 1.25fr;align-items:center;min-height:135px}.calendar-hero h1{margin:0;color:#17251e;font-size:36px;letter-spacing:-.05em}.calendar-hero h1>span{font-size:31px}.calendar-hero h1 em,.selection-panel h2 span,.undated-panel h2 span{color:#62af35;font-size:15px;font-style:normal}.calendar-hero p{margin:12px 0 0;color:#4f5e55;font-size:14px}.hero-scene{display:flex;align-items:flex-end;justify-content:center;gap:10px;height:130px;padding:15px 25px 0;border-radius:50% 50% 12px 12px;background:linear-gradient(180deg,transparent 20%,#dff1bd 21%,#9bcd69 82%,#70ac45 83%);font-size:52px}.hero-scene span:nth-child(2){font-size:44px}.hero-scene span:nth-child(4){font-size:48px}.hero-scene span:nth-child(5){font-size:39px}.calendar-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,.95fr);gap:18px}.calendar-panel,.selection-panel,.undated-panel{padding:20px;border-radius:25px}.calendar-panel{overflow:hidden}.type-filter{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.type-filter button{min-width:82px;padding:9px 16px;border:1px solid #e5e2da;border-radius:99px;color:#46534b;background:#fff;font-weight:750;cursor:pointer}.type-filter button span{margin-right:6px;color:#6db43e}.type-filter button.active{border-color:#63ae32;color:#fff;background:linear-gradient(#75be43,#55a626)}.type-filter button.active span{color:#fff}.selection-panel{display:flex;min-height:590px;flex-direction:column}.selection-panel header h2{margin:0 0 9px;font-size:19px}.selection-panel header>strong{font-size:15px}.selection-panel ul,.undated-panel ul{display:grid;gap:10px;margin:18px 0;padding:0;list-style:none}.selection-panel li{display:grid;grid-template-columns:104px 1fr;gap:12px;padding:0;border:1px solid #e7e4dc;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 3px 10px #463b2510;cursor:pointer}.thumb{height:92px;background:#e8f4d8}.thumb img{width:100%;height:100%;object-fit:cover}.thumb.empty{display:grid;place-items:center;font-size:34px}.selection-panel li>div+div{display:flex;min-width:0;flex-direction:column;justify-content:center;gap:3px;padding:8px 10px 8px 0}.selection-panel li p{display:flex;align-items:center;gap:8px;margin:0}.selection-panel li p b{padding:3px 7px;border-radius:99px;color:#fff;background:#7a70d5;font-size:10px}.selection-panel li p b[data-type="전시"]{background:#ec7b42}.selection-panel li p b[data-type="체험"]{background:#76b64e}.selection-panel li p b[data-type="축제"]{background:#e18d3e}.selection-panel li strong{overflow:hidden;color:#283229;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.selection-panel li small{overflow:hidden;color:#69736c;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.empty-day{margin:auto;padding:30px;color:#788079;text-align:center}.day-button{margin-top:auto;padding:12px;border:1px solid #e2dfd6;border-radius:13px;background:#fff;font-weight:800;cursor:pointer}.undated-panel{margin-top:18px}.undated-panel header h2{margin:0;font-size:18px}.undated-panel header p{margin:3px 0 0;color:#7a817b;font-size:11px}.undated-panel ul{grid-template-columns:1fr 1fr}.undated-panel li{display:grid;grid-template-columns:48px 1fr;align-items:center;gap:10px;padding:8px 14px;border:1px solid #e6e2d8;border-radius:12px;background:#fffdfa;cursor:pointer}.undated-panel li>span{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:#edf5e3;font-size:22px}.undated-panel li div{display:grid}.undated-panel li strong{font-size:12px}.undated-panel li small{overflow:hidden;color:#737b75;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.state-card{padding:50px;text-align:center}
-:deep(.fc .fc-toolbar-title){font-size:25px;letter-spacing:-.04em}:deep(.fc .fc-button-primary){border:0;border-radius:7px;background:#2f4051}:deep(.fc-theme-standard td),:deep(.fc-theme-standard th){border-color:#e7e5de}:deep(.fc .fc-col-header-cell-cushion){padding:9px;color:#303730;font-size:12px}:deep(.fc .fc-daygrid-day){height:91px}:deep(.fc .fc-daygrid-day-number){padding:9px;color:#313832;font-size:12px;font-weight:800}:deep(.fc .fc-daygrid-day.selected-day){background:#fffbe7;box-shadow:inset 0 0 0 2px #80b84b}:deep(.fc .fc-day-today){background:#f4faee!important}:deep(.fc-event){border:0;background:transparent;cursor:pointer}:deep(.fc-event-main){display:flex;align-items:center;color:#334038}:deep(.event-dot){width:7px;height:7px;flex:none;border-radius:50%;background:#7b70d3}:deep(.type-전시){background:#ef7d3d}:deep(.type-체험){background:#62b13c}:deep(.type-축제){background:#35a4dc}:deep(.type-기타){background:#aaa4c7}:deep(.event-name){overflow:hidden;margin-left:4px;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:980px){.calendar-hero{grid-template-columns:1fr}.hero-scene{display:none}.calendar-layout{grid-template-columns:1fr}.selection-panel{min-height:auto}}@media(max-width:620px){.calendar-page{padding-top:16px}.calendar-hero{min-height:100px}.calendar-hero h1{font-size:29px}.calendar-panel,.selection-panel,.undated-panel{padding:14px}.undated-panel ul{grid-template-columns:1fr}:deep(.fc .fc-toolbar-title){font-size:19px}:deep(.fc .fc-daygrid-day){height:72px}.event-name{display:none}}
+.festival-page {
+  padding: 28px 0 48px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-primary, #69a83a);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+h1 {
+  margin: 0;
+  color: #233c31;
+  font-size: 30px;
+  letter-spacing: -0.04em;
+}
+
+.page-head p:not(.eyebrow) {
+  margin: 8px 0 0;
+  color: #60756c;
+}
+
+.view-tabs {
+  display: inline-flex;
+  padding: 4px;
+  border: 1px solid #dce5d8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.view-tabs button {
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  background: transparent;
+  color: #607068;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.view-tabs button.active {
+  background: #edf5e7;
+  color: #2f6335;
+}
+
+.filter-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: end;
+  gap: 12px 18px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.search-field {
+  display: grid;
+  gap: 7px;
+  color: #344a40;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.search-field input {
+  width: 100%;
+  border: 1px solid #d6dfd3;
+  border-radius: 11px;
+  padding: 11px 12px;
+  color: #24372e;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+}
+
+.search-field input:focus-visible,
+.view-tabs button:focus-visible,
+.pagination button:focus-visible,
+.state-card button:focus-visible {
+  outline: 3px solid rgba(105, 168, 58, 0.25);
+  outline-offset: 2px;
+}
+
+.past-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  color: #40564b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.past-toggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--color-primary, #69a83a);
+}
+
+.filter-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #75857c;
+  font-size: 12px;
+}
+
+.result-head {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  color: #65766d;
+  font-size: 13px;
+}
+
+.result-head strong {
+  color: #2e4439;
+  font-size: 15px;
+}
+
+.festival-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  transition: opacity 0.2s ease;
+}
+
+.festival-grid[aria-busy='true'] {
+  opacity: 0.55;
+}
+
+.state-card {
+  margin-top: 14px;
+  border: 1px dashed #d5ddd0;
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  color: #63776c;
+  background: #fbfdf8;
+}
+
+.state-card strong {
+  display: block;
+  color: #334b40;
+}
+
+.state-card p {
+  margin: 7px 0 0;
+}
+
+.state-card button,
+.pagination button,
+.calendar-status button {
+  margin-top: 12px;
+  border: 1px solid #cbd9c5;
+  border-radius: 10px;
+  padding: 8px 13px;
+  background: #fff;
+  color: #365a3f;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.error-state {
+  border-color: #e7c8c2;
+  background: #fff9f7;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+  color: #51665c;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.pagination button {
+  margin-top: 0;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.calendar-shell {
+  position: relative;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.calendar-status {
+  min-height: 24px;
+  color: #66786f;
+  font-size: 12px;
+}
+
+.calendar-status button {
+  margin: 0 0 8px;
+}
+
+.calendar-note {
+  margin: 10px 0 0;
+  color: #6b7c73;
+  font-size: 12px;
+}
+
+.selected-wrap {
+  margin-top: 18px;
+}
+
+.selected-wrap h2 {
+  margin: 0 0 10px;
+  color: #263d33;
+  font-size: 20px;
+}
+
+.selected-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.selected-list li {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dde5d8;
+  border-radius: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+}
+
+.selected-list strong {
+  color: #2b4439;
+}
+
+.selected-list span {
+  color: #61756b;
+  font-size: 13px;
+}
+
+.empty-day {
+  margin-top: 0;
+}
+
+:deep(.fc .selected-day .fc-daygrid-day-number) {
+  border-radius: 50%;
+  background: var(--color-primary, #69a83a);
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .festival-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .festival-page {
+    padding-top: 18px;
+  }
+
+  .page-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .view-tabs {
+    align-self: flex-start;
+  }
+
+  .filter-card {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-hint {
+    grid-column: auto;
+  }
+
+  .festival-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  :deep(.fc .fc-toolbar) {
+    align-items: center;
+  }
+
+  :deep(.fc .fc-toolbar-title) {
+    font-size: 16px;
+  }
+
+  :deep(.fc .fc-button) {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .festival-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

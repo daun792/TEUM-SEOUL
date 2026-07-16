@@ -1,4 +1,4 @@
-import { resolveApiBaseUrl } from './apiBase'
+import { resolveApiBaseUrl } from './apiBase.js'
 
 export async function sendChatMessage(message, options = {}) {
   const cleanedMessage = message.trim()

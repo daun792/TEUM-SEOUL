@@ -6,10 +6,24 @@ export function resolveApiBaseUrl() {
 }
 
 export async function requestJson(path, options = {}) {
-  const baseUrl = (options.baseUrl || resolveApiBaseUrl()).replace(/\/$/, '')
-  const response = await fetch(`${baseUrl}${path}`, options)
+  const {
+    baseUrl: configuredBaseUrl,
+    fetchImpl = fetch,
+    ...fetchOptions
+  } = options
+
+  const baseUrl = (
+    configuredBaseUrl ||
+    resolveApiBaseUrl()
+  ).replace(/\/$/, '')
+
+  const response = await fetchImpl(
+    `${baseUrl}${path}`,
+    fetchOptions,
+  )
 
   let payload = null
+
   try {
     payload = await response.json()
   } catch {
@@ -17,7 +31,11 @@ export async function requestJson(path, options = {}) {
   }
 
   if (!response.ok) {
-    const detail = payload && typeof payload.detail === 'string' ? payload.detail : '서버 요청에 실패했습니다.'
+    const detail =
+      payload && typeof payload.detail === 'string'
+        ? payload.detail
+        : '서버 요청에 실패했습니다.'
+
     throw new Error(detail)
   }
 

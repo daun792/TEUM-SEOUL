@@ -1,9 +1,11 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import FestivalCard from '../festival/FestivalCard.vue'
-import { getFestivalList } from '../../services/festivalsApi'
-import { getFestivalStatus, getFestivalTags } from '../../utils/festivalTags'
+import { getFestivalPage } from '../../services/festivalsApi.js'
+import { useFestivalQuery } from '../../composables/useFestivalQuery.js'
+import { addDaysIso, todayIso } from '../../utils/dateRange.js'
+import { getFestivalStatus, getFestivalTags } from '../../utils/festivalTags.js'
 
 const props = defineProps({
   selectedCategory: {
@@ -12,43 +14,65 @@ const props = defineProps({
   },
 })
 
-const weeklyFestivals = ref([])
-
-onMounted(async () => {
-  try {
-    const festivals = await getFestivalList({ page: 1, size: 18 })
-    weeklyFestivals.value = festivals.map((festival) => ({
-      id: festival.id,
-      title: festival.title,
-      date: festival.period,
-      place: festival.place,
-      imageUrl: festival.imageUrl,
-      status: getFestivalStatus(festival),
-      priceType: /무료/.test(festival.title) ? '무료' : '유료',
-      tags: getFestivalTags(festival),
-    }))
-  } catch {
-    weeklyFestivals.value = []
-  }
-})
-
-const filteredFestivals = computed(() =>
-  weeklyFestivals.value.filter((festival) => festival.tags.includes(props.selectedCategory)),
+const festivalQuery = useFestivalQuery(
+  (params, options) => getFestivalPage(params, options),
+  { initialData: { items: [], total: 0, page: 1, size: 18, pages: 0 } },
 )
+
+const weeklyFestivals = computed(() => (festivalQuery.data.value?.items || []).map((festival) => ({
+  id: festival.id,
+  title: festival.title,
+  date: festival.period,
+  place: festival.place,
+  imageUrl: festival.imageUrl,
+  status: getFestivalStatus(festival),
+  priceType: /무료/.test(festival.title) ? '무료' : '정보 없음',
+  tags: getFestivalTags(festival),
+})))
+
+const filteredFestivals = computed(() => weeklyFestivals.value
+  .filter((festival) => festival.tags.includes(props.selectedCategory)))
+
+function loadUpcomingFestivals(options = {}) {
+  const startDate = todayIso()
+  const endDate = addDaysIso(startDate, 90)
+  return festivalQuery.run({
+    startDate,
+    endDate,
+    page: 1,
+    size: 18,
+  }, options)
+}
+
+onMounted(() => loadUpcomingFestivals())
 </script>
 
 <template>
-  <section class="weekly section-card">
+  <section class="weekly section-card" :aria-busy="festivalQuery.loading.value">
     <header class="section-head">
-      <h2>축제 목록</h2>
+      <div>
+        <h2>진행 중·예정 행사</h2>
+        <p>오늘부터 90일 안의 서울 문화행사</p>
+      </div>
       <RouterLink to="/festivals">더보기 <span aria-hidden="true">›</span></RouterLink>
     </header>
 
-    <div v-if="filteredFestivals.length" class="card-slider">
+    <div v-if="festivalQuery.waking.value" class="inline-state" aria-live="polite">
+      서버를 깨우는 중입니다. 잠시만 기다려 주세요.
+    </div>
+    <div v-else-if="festivalQuery.loading.value && !weeklyFestivals.length" class="inline-state" aria-live="polite">
+      가까운 행사를 불러오는 중입니다.
+    </div>
+    <div v-else-if="festivalQuery.error.value" class="inline-state error-state" aria-live="assertive">
+      <span>{{ festivalQuery.error.value }}</span>
+      <button type="button" @click="festivalQuery.retry">다시 시도</button>
+    </div>
+
+    <div v-else-if="filteredFestivals.length" class="card-slider">
       <FestivalCard v-for="item in filteredFestivals" :key="item.id" :festival="item" />
     </div>
 
-    <p v-else class="empty-state">선택한 카테고리에 맞는 추천 축제를 준비 중입니다.</p>
+    <p v-else class="empty-state">선택한 카테고리에 맞는 진행 중·예정 행사가 없습니다.</p>
   </section>
 </template>
 
@@ -63,7 +87,7 @@ const filteredFestivals = computed(() =>
 
 .section-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 14px;
@@ -76,7 +100,14 @@ h2 {
   letter-spacing: -0.035em;
 }
 
+.section-head p {
+  margin: 4px 0 0;
+  color: #75827b;
+  font-size: 11px;
+}
+
 .section-head a {
+  flex: none;
   color: #6b756f;
   font-size: 12px;
   font-weight: 750;
@@ -98,6 +129,7 @@ h2 {
   scroll-snap-align: start;
 }
 
+.inline-state,
 .empty-state {
   margin: 10px 0 2px;
   flex: 1;
@@ -106,10 +138,28 @@ h2 {
   place-items: center;
   border: 1px dashed #d6dfd1;
   border-radius: 14px;
+  padding: 14px;
   background: #fbfdf8;
   color: #6a7b72;
+  text-align: center;
   font-size: 13px;
   font-weight: 700;
+}
+
+.error-state {
+  gap: 10px;
+  border-color: #e7c8c2;
+  background: #fff9f7;
+}
+
+.error-state button {
+  border: 1px solid #cfdbca;
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: #fff;
+  color: #365a3f;
+  cursor: pointer;
+  font-weight: 750;
 }
 
 @media (max-width: 760px) {
