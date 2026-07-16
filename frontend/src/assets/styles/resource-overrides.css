@@ -1,0 +1,12 @@
+.calendar-hero .hero-scene{background:url('../ui/calendar-hero.webp') right bottom/contain no-repeat!important}
+.calendar-hero .hero-scene>*{display:none!important}
+.calendar-hero h1>span{display:inline-block;width:42px;height:42px;font-size:0;background:url('../ui/calendar-title-icon.png') center/contain no-repeat;vertical-align:middle}
+.calendar-panel .type-filter button>span:first-child{display:inline-block;width:22px;height:22px;font-size:0;background-position:center;background-size:contain;background-repeat:no-repeat}
+.calendar-panel .type-filter button:nth-child(1)>span:first-child{background-image:url('../ui/filter-icons/filter-all.png')}
+.calendar-panel .type-filter button:nth-child(2)>span:first-child{background-image:url('../ui/filter-icons/filter-performance.png')}
+.calendar-panel .type-filter button:nth-child(3)>span:first-child{background-image:url('../ui/filter-icons/filter-exhibition.png')}
+.calendar-panel .type-filter button:nth-child(4)>span:first-child{background-image:url('../ui/filter-icons/filter-experience.png')}
+.calendar-panel .type-filter button:nth-child(5)>span:first-child{background-image:url('../ui/filter-icons/filter-festival.png')}
+.calendar-panel .type-filter button:nth-child(6)>span:first-child{background-image:url('../ui/filter-icons/filter-all.png')}
+.app-header .header-inner{grid-template-columns:auto 1fr!important}
+.app-header .desktop-nav{justify-content:flex-start!important;margin-left:42px!important}
