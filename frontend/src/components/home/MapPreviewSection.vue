@@ -8,7 +8,7 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { getPlaces } from '../../services/placesApi'
 import { getFestivalList } from '../../services/festivalsApi'
-import { MAP_FILTERS, placeTypeLabel, toApiCategory } from '../../utils/placeFilters'
+import { placeTypeLabel, toApiCategory } from '../../utils/placeFilters'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -16,16 +16,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
-const props = defineProps({
-  selectedCategory: {
-    type: String,
-    default: '전체',
-  },
-})
-
 const mapRef = ref(null)
 const selectedFilter = ref('전체')
-const filters = MAP_FILTERS
+const filters = ['전체', '축제', '관광지', '문화시설', '쇼핑', '체험']
 const allPlaces = ref([])
 const filteredPlaces = computed(() => allPlaces.value)
 
@@ -40,27 +33,11 @@ const mapFestivalFallback = (festivals) =>
       lng: festival.lng,
     }))
 
-const categoryToMapFilter = {
-  전체: '전체',
-  '다가오는 축제': '축제',
-  '무료 축제': '축제',
-  공연: '축제',
-  전시: '전체',
-  전통: '관광지',
-  '야외 행사': '축제',
-}
-
 const loadPlaces = async () => {
   try {
     const params = { page: 1, size: 200 }
-    if (selectedFilter.value === '반경 2km') {
-      params.lat = 37.5665
-      params.lng = 126.978
-      params.radiusKm = 2
-    } else {
-      const apiCategory = toApiCategory(selectedFilter.value)
-      if (apiCategory) params.category = apiCategory
-    }
+    const apiCategory = toApiCategory(selectedFilter.value)
+    if (apiCategory) params.category = apiCategory
 
     const page = await getPlaces(params)
     allPlaces.value = page.items.filter((place) => typeof place.lat === 'number' && typeof place.lng === 'number')
@@ -115,14 +92,6 @@ watch(selectedFilter, async () => {
   renderMarkers()
 })
 
-watch(
-  () => props.selectedCategory,
-  (category) => {
-    selectedFilter.value = categoryToMapFilter[category] || '전체'
-  },
-  { immediate: true },
-)
-
 onBeforeUnmount(() => {
   map?.remove()
   map = null
@@ -148,7 +117,7 @@ onBeforeUnmount(() => {
         @click="selectedFilter = item"
       >
         <span class="filter-icon" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
-        {{ item }}
+        <span class="filter-label">{{ item }}</span>
       </button>
 
     </div>
@@ -194,7 +163,7 @@ h2 {
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
   padding-top: 12px;
   scrollbar-width: none;
@@ -206,31 +175,37 @@ h2 {
 
 .filter-btn {
   flex: 0 0 auto;
-  min-height: 34px;
+  width: 66px;
+  min-height: 70px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  padding: 10px 8px;
   border: 0;
   border-radius: var(--radius-pill);
   background: #fff;
   color: #4d5c54;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
-}
-
-.filter-btn {
-  padding: 0 8px 0 5px;
+  white-space: normal;
+  text-align: center;
 }
 
 .filter-icon {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border: 1.5px dashed #b9c7b4;
   border-radius: 50%;
   font-size: 8px;
+}
+
+.filter-label {
+  line-height: 1.15;
 }
 
 .filter-btn.active {
@@ -256,6 +231,12 @@ h2 {
 @media (max-width: 760px) {
   .map-box {
     height: 320px;
+  }
+
+  .filter-btn {
+    width: 60px;
+    min-height: 66px;
+    padding-inline: 6px;
   }
 }
 </style>

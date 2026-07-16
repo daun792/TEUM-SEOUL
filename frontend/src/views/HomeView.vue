@@ -22,7 +22,7 @@ const activeCategory = ref('전체')
     <section class="container dashboard" aria-label="틈서울 메인 콘텐츠">
       <WeeklyFestivalSection class="festival-panel" :selected-category="activeCategory" />
       <FestivalCalendarSection class="calendar-panel" :selected-category="activeCategory" />
-      <MapPreviewSection class="map-panel" :selected-category="activeCategory" />
+      <MapPreviewSection class="map-panel" />
       <CommunityPreviewSection class="community-panel" />
     </section>
 
@@ -52,7 +52,7 @@ const activeCategory = ref('전체')
   grid-template-columns: minmax(470px, 1.65fr) minmax(280px, 0.92fr) minmax(350px, 1.18fr) minmax(280px, 0.92fr);
   gap: 14px;
   margin-top: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .dashboard > * {

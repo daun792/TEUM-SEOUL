@@ -90,6 +90,9 @@ const calendarOptions = computed(() => ({
 
 <style scoped>
 .calendar-section {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
   border-radius: 18px;
 }
@@ -123,6 +126,10 @@ h2 {
   color: #5e6d65;
   font-size: 10px;
   font-weight: 750;
+}
+
+:deep(.fc) {
+  flex: 1;
 }
 
 .legend span {

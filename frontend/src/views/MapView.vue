@@ -21,6 +21,8 @@ const filters = MAP_FILTERS
 const places = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+const activePlaceId = ref('')
+const markerMap = new Map()
 
 const filteredPlaces = computed(() => {
   return places.value
@@ -82,9 +84,13 @@ const renderMarkers = () => {
   if (!map) return
 
   markers.forEach((marker) => marker.remove())
-  markers = filteredPlaces.value.map((place) =>
-    L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`),
-  )
+  markerMap.clear()
+  markers = filteredPlaces.value.map((place) => {
+    const marker = L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong><br>${placeTypeLabel(place)}`)
+    marker.on('click', () => focusPlace(place))
+    markerMap.set(place.id, marker)
+    return marker
+  })
 
   requestAnimationFrame(() => {
     map?.invalidateSize()
@@ -93,6 +99,14 @@ const renderMarkers = () => {
       map?.fitBounds(group.getBounds(), { padding: [20, 20] })
     }
   })
+}
+
+const focusPlace = (place) => {
+  if (!map) return
+
+  activePlaceId.value = place.id
+  map.flyTo([place.lat, place.lng], 15, { duration: 0.6 })
+  markerMap.get(place.id)?.openPopup()
 }
 
 onMounted(async () => {
@@ -138,8 +152,15 @@ onBeforeUnmount(() => {
         <h2>표시 목록</h2>
         <ul>
           <li v-for="place in filteredPlaces" :key="place.id">
-            <strong>{{ place.name }}</strong>
-            <span>{{ placeTypeLabel(place) }}</span>
+            <button
+              type="button"
+              class="place-button"
+              :class="{ active: activePlaceId === place.id }"
+              @click="focusPlace(place)"
+            >
+              <strong>{{ place.name }}</strong>
+              <span>{{ placeTypeLabel(place) }}</span>
+            </button>
           </li>
         </ul>
         <p v-if="!loading && !filteredPlaces.length" class="state-text">표시 가능한 위치 데이터가 없습니다.</p>
@@ -220,9 +241,23 @@ onBeforeUnmount(() => {
 .side-panel li {
   border: 1px solid #e8ebe4;
   border-radius: 10px;
+  overflow: hidden;
+}
+
+.place-button {
+  width: 100%;
+  border: 0;
+  background: #fff;
   padding: 10px;
   display: grid;
   gap: 2px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-button:hover,
+.place-button.active {
+  background: #f6faf3;
 }
 
 .side-panel strong {
